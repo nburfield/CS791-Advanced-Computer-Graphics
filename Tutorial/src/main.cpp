@@ -95,7 +95,7 @@ int main(int argc, char **argv)
  
     // Initialize glut
     //glutInitContextVersion(3,2);
-    glutInitContextFlags(GLUT_CORE_PROFILE);
+    //glutInitContextFlags(GLUT_CORE_PROFILE);
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(w, h);
