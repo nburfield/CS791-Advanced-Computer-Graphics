@@ -40,6 +40,9 @@ string ErrorString(GLenum error);
 void render();
 bool keyboard(float dt);
 void close();
+void beginLightPass();
+void pointLightPass(int i);
+void directLightPass();
 
 // SDL data
 SDL_Window* gWindow = NULL;
@@ -214,46 +217,19 @@ bool initilize()
   box[3].model = glm::translate(glm::mat4(1.0f), glm::vec3(4.0f, 4.0f, 15.0f));
   box[4].model = glm::translate(glm::mat4(1.0f), glm::vec3(-4.0f, 2.0f, 20.0f));
   */
-  platform.LoadMesh("../data/earth.obj");
-  m_quad.LoadMesh("../data/quad.obj");
-  m_bsphere.LoadMesh("../data/sphere.obj");
-
-
-  // Setup the program with the shaders
- 
-  /*
-  Shader vertex, fragment;
-  if(!vertex.Initilize("../shader/vertexShader.glsl", GL_VERTEX_SHADER, program))
+  if(!m_quad.LoadMesh("../data/quad.obj"))
   {
+    printf("Quad Failed to load.\n");
     return false;
   }
-  std::cout<<"Vertex Shader Success"<<std::endl;
-  if(!fragment.Initilize("../shader/fragmentShader.glsl", GL_FRAGMENT_SHADER, program))
+
+  if(!m_bsphere.LoadMesh("../data/sphere.obj"))
   {
+    printf("Sphere failed to load.\n");
     return false;
   }
+  //platform.LoadMesh("../data/earth.obj");
   
-
-  glLinkProgram(program);
-
-  //check if everything linked ok
-  GLint shader_status;
-  glGetProgramiv(program, GL_LINK_STATUS, &shader_status);
-  if(!shader_status)
-  {
-    std::cerr << "[F] THE SHADER PROGRAM FAILED TO LINK" << std::endl;
-    return false;
-  }
-
-  
-  loc_mvpmat = glGetUniformLocation(program, const_cast<const char*>("mvpMatrix"));
-  if(loc_mvpmat == -1)
-  {
-    printf("MVPMATRIX NOT FOUND\n");
-    return false;
-  }
-  */
-
   // Camera
   camera.setThresh(20,10);
   //camera.viewUpdate();
@@ -276,21 +252,21 @@ void InitLights()
   m_dirLight.DiffuseIntensity = 0.5f;
   m_dirLight.Direction = glm::vec3(1.0f, 0.0f, 0.0f);
 
-  m_pointLight[0].DiffuseIntensity = 0.2f;
+  m_pointLight[0].DiffuseIntensity = 100.9f;
   m_pointLight[0].Color = COLOR_GREEN;
   m_pointLight[0].Position = glm::vec3(0.0f, 1.5f, 5.0f);
   m_pointLight[0].Attenuation.Constant = 0.0f;
   m_pointLight[0].Attenuation.Linear = 0.0f;
   m_pointLight[0].Attenuation.Exp = 0.3f;
 
-  m_pointLight[1].DiffuseIntensity = 0.2f;
+  m_pointLight[1].DiffuseIntensity = 100.9f;
   m_pointLight[1].Color = COLOR_RED;
   m_pointLight[1].Position = glm::vec3(2.0f, 0.0f, 5.0f);
   m_pointLight[1].Attenuation.Constant = 0.0f;
   m_pointLight[1].Attenuation.Linear = 0.0f;
   m_pointLight[1].Attenuation.Exp = 0.3f;
 
-  m_pointLight[2].DiffuseIntensity = 0.2f;
+  m_pointLight[2].DiffuseIntensity = 100.9f;
   m_pointLight[2].Color = COLOR_BLUE;
   m_pointLight[2].Position = glm::vec3(0.0f, 0.0f, 3.0f);
   m_pointLight[2].Attenuation.Constant = 0.0f;
@@ -363,6 +339,48 @@ string ErrorString(GLenum error)
   }
 }
 
+void beginLightPass()
+{
+  // Begin Passes
+  glEnable(GL_BLEND);
+  glBlendEquation(GL_FUNC_ADD);
+  glBlendFunc(GL_ONE, GL_ONE);
+  g_buffer.BindForReading();
+  glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void pointLightPass(int i)
+{
+  // Point Light Pass
+  m_DSPointLightPassTech.Start();
+  m_DSPointLightPassTech.SetEyeWorldPos(glm::vec3(camera.x(), camera.y(), camera.z()));        
+
+  //for (unsigned int i = 0 ; i < (sizeof(m_pointLight)/sizeof(m_pointLight[0])); i++) 
+  //{
+    m_DSPointLightPassTech.SetPointLight(m_pointLight[i]);            
+    //p.WorldPos(m_pointLight[i].Position);
+    glm::vec3 worldPos = m_pointLight[i].Position;
+    float BSphereScale = CalcPointLightBSphere(m_pointLight[i]);
+    m_bsphere.model = glm::scale(glm::mat4(1.0f), glm::vec3(BSphereScale, BSphereScale, BSphereScale));
+    //p.Scale(BSphereScale, BSphereScale, BSphereScale);  
+    //m_DSPointLightPassTech.SetWVP(p.GetWVPTrans());
+    //glm::mat4 mvp = camera.getProjection() * camera.getView() * m_bsphere.model;
+    glm::mat4 mvp = camera.getProjection() * camera.getView() * m_bsphere.model;
+    m_DSPointLightPassTech.SetWVP(mvp);
+    m_bsphere.Render();                   
+  //}
+}
+
+void directLightPass()
+{
+  // Directional Light Pass
+  m_DSDirLightPassTech.Start();
+  m_DSDirLightPassTech.SetEyeWorldPos(glm::vec3(camera.x(), camera.y(), camera.z()));
+  glm::mat4 WVP = glm::mat4(1.0f);
+  m_DSDirLightPassTech.SetWVP(WVP);
+  m_quad.Render();
+}
+
 void render()
 {
   g_pass.Start();
@@ -393,6 +411,14 @@ void render()
   // depends on it, but it does not write to it.
   glDepthMask(GL_FALSE);
   glDisable(GL_DEPTH_TEST);
+
+  beginLightPass();
+
+  for(int i = 0; i < (sizeof(m_pointLight)/sizeof(m_pointLight[0])); i++)
+  {
+    pointLightPass(i);
+    directLightPass();
+  }
 
   /*
   if(platform.ison())
@@ -433,31 +459,6 @@ void render()
   glBlitFramebuffer(0, 0, width, height, HalfWidth, 0, width, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
   */
   
-  // Begin Passes
-  glEnable(GL_BLEND);
-  glBlendEquation(GL_FUNC_ADD);
-  glBlendFunc(GL_ONE, GL_ONE);
-  g_buffer.BindForReading();
-  glClear(GL_COLOR_BUFFER_BIT);
-
-  // Point Light Pass
-  m_DSPointLightPassTech.Start();
-  m_DSPointLightPassTech.SetEyeWorldPos(glm::vec3(camera.x(), camera.y(), camera.z()));        
-
-  for (unsigned int i = 0 ; i < (sizeof(m_pointLight)/sizeof(m_pointLight[0])); i++) 
-  {
-    m_DSPointLightPassTech.SetPointLight(m_pointLight[i]);            
-    //p.WorldPos(m_pointLight[i].Position);
-    glm::vec3 worldPos = m_pointLight[i].Position;
-    float BSphereScale = CalcPointLightBSphere(m_pointLight[i]);
-    m_bsphere.model = glm::scale(m_bsphere.model, glm::vec3(BSphereScale, BSphereScale, BSphereScale));
-    //p.Scale(BSphereScale, BSphereScale, BSphereScale);  
-    //m_DSPointLightPassTech.SetWVP(p.GetWVPTrans());
-    //glm::mat4 mvp = camera.getProjection() * camera.getView() * m_bsphere.model;
-    glm::mat4 mvp = glm::translate(glm::mat4(1.0f), worldPos) * camera.getView() * m_bsphere.model;
-    m_DSPointLightPassTech.SetWVP(mvp);
-    m_bsphere.Render();                   
-  }
 
   /*///////////////////////////////////////////////////////////////////////////////////////
     // Get world trans
@@ -486,15 +487,7 @@ void render()
 
     glm::mat4 m_WVPtransformation = m_VPtransformation * m_Wtransformation;
   *////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
-  
-  // Directional Light Pass
-  m_DSDirLightPassTech.Start();
-  m_DSDirLightPassTech.SetEyeWorldPos(glm::vec3(camera.x(), camera.y(), camera.z()));
-  glm::mat4 WVP = glm::mat4(1.0f);
-  m_DSDirLightPassTech.SetWVP(WVP);
-  m_quad.Render();
-  
+    
   auto error = glGetError();
   if ( error != GL_NO_ERROR )
   {
