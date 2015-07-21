@@ -1,6 +1,11 @@
+//#include <OpenGL/GLU.h>
+//#include <GLUT/glut.h>
+//#include <OpenGL/gl3.h>
+
 #include <GL/glew.h> // glew must be included before the main gl libs
 #define GL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED
-#include <GL/glut.h> // doing otherwise causes compiler shouting
+#include <GLUT/glut.h>
+//#include <GL/glut.h> // doing otherwise causes compiler shouting
 #include <iostream>
 #include <chrono>
 
@@ -10,7 +15,7 @@
 #include <glm/gtc/type_ptr.hpp> //Makes passing matrices to shaders easier
 
 // Classes
-#include "shader.h"
+#include <shader.h>
 
 //--Data types
 //This object will define the attributes of a vertex(position, color, etc...)
@@ -61,7 +66,6 @@ void printText(char *text);
 
 //--Resource management
 bool initialize(char *vs, char *fs);
-static char* readShaderSource(const char* file);
 void cleanUp();
 
 //--Random time things
@@ -94,10 +98,8 @@ int main(int argc, char **argv)
      }
  
     // Initialize glut
-    //glutInitContextVersion(3,2);
-    //glutInitContextFlags(GLUT_CORE_PROFILE);
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_3_2_CORE_PROFILE);
     glutInitWindowSize(w, h);
     // Name and create the Window
     glutCreateWindow("Matrix Example");
@@ -150,7 +152,7 @@ void render()
     //premultiply the matrix for this example
     mvp  = projection * view * model_earth;
     mvp2 = projection * view * model_moon;
-  mvp3 = projection * view * model_text;
+    mvp3 = projection * view * model_text;
 
     //enable the shader program
     glUseProgram(program);

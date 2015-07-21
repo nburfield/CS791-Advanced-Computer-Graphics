@@ -1,9 +1,10 @@
 //
 // Shader Class
 //
+#ifndef SHADER_H
+#define SHADER_H
 
-#include <GL/glew.h> // glew must be included before the main gl libs
-#define GL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED
+#include <OpenGL/GLU.h>
 
 class Shader
    {
@@ -23,3 +24,4 @@ class Shader
         GLuint shader;
         GLenum _shaderType;
    };
+#endif
