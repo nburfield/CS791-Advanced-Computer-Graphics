@@ -41,7 +41,7 @@ void render();
 bool keyboard(float dt);
 void close();
 void beginLightPass();
-void pointLightPass(int i);
+void pointLightPass();
 void directLightPass();
 
 // SDL data
@@ -265,26 +265,26 @@ void InitLights()
   m_spotLight.Direction = glm::vec3(1.0f, -1.0f, 0.0f);
   m_spotLight.Cutoff =  20.0f;
 
-  m_dirLight.AmbientIntensity = 0.1f;
+  m_dirLight.AmbientIntensity = 0.5f;
   m_dirLight.Color = COLOR_CYAN;
   m_dirLight.DiffuseIntensity = 0.5f;
-  m_dirLight.Direction = glm::vec3(1.0f, 0.0f, 0.0f);
+  m_dirLight.Direction = glm::vec3(0.0f, -1.0f, 0.0f);
 
-  m_pointLight[0].DiffuseIntensity = 100.9f;
+  m_pointLight[0].DiffuseIntensity = 10.2f;
   m_pointLight[0].Color = COLOR_GREEN;
   m_pointLight[0].Position = glm::vec3(0.0f, 1.5f, 5.0f);
   m_pointLight[0].Attenuation.Constant = 0.0f;
   m_pointLight[0].Attenuation.Linear = 0.0f;
   m_pointLight[0].Attenuation.Exp = 0.3f;
 
-  m_pointLight[1].DiffuseIntensity = 100.9f;
+  m_pointLight[1].DiffuseIntensity = 10.2f;
   m_pointLight[1].Color = COLOR_RED;
-  m_pointLight[1].Position = glm::vec3(2.0f, 0.0f, 5.0f);
+  m_pointLight[1].Position = glm::vec3(2.0f, 2.0f, 11.0f);
   m_pointLight[1].Attenuation.Constant = 0.0f;
   m_pointLight[1].Attenuation.Linear = 0.0f;
   m_pointLight[1].Attenuation.Exp = 0.3f;
 
-  m_pointLight[2].DiffuseIntensity = 100.9f;
+  m_pointLight[2].DiffuseIntensity = 10.2f;
   m_pointLight[2].Color = COLOR_BLUE;
   m_pointLight[2].Position = glm::vec3(0.0f, 0.0f, 3.0f);
   m_pointLight[2].Attenuation.Constant = 0.0f;
@@ -367,32 +367,34 @@ void beginLightPass()
   glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void pointLightPass(int i)
+void pointLightPass()
 {
   // Point Light Pass
   m_DSPointLightPassTech.Start();
   m_DSPointLightPassTech.SetEyeWorldPos(glm::vec3(camera.x(), camera.y(), camera.z()));        
 
-  //for (unsigned int i = 0 ; i < (sizeof(m_pointLight)/sizeof(m_pointLight[0])); i++) 
-  //{
+  for (unsigned int i = 0 ; i < (sizeof(m_pointLight)/sizeof(m_pointLight[0])); i++) 
+  {
     m_DSPointLightPassTech.SetPointLight(m_pointLight[i]);            
     //p.WorldPos(m_pointLight[i].Position);
     glm::vec3 worldPos = m_pointLight[i].Position;
     float BSphereScale = CalcPointLightBSphere(m_pointLight[i]);
-    m_bsphere.model = glm::scale(glm::mat4(1.0f), glm::vec3(BSphereScale, BSphereScale, BSphereScale));
+    m_bsphere.model = glm::translate(glm::mat4(1.0f), worldPos) ;//* glm::scale(glm::mat4(1.0f), glm::vec3(BSphereScale, BSphereScale, BSphereScale));
     //p.Scale(BSphereScale, BSphereScale, BSphereScale);  
     //m_DSPointLightPassTech.SetWVP(p.GetWVPTrans());
     //glm::mat4 mvp = camera.getProjection() * camera.getView() * m_bsphere.model;
+    m_bsphere.model = glm::scale(m_bsphere.model, glm::vec3(BSphereScale, BSphereScale, BSphereScale));
     glm::mat4 mvp = camera.getProjection() * camera.getView() * m_bsphere.model;
     m_DSPointLightPassTech.SetWVP(mvp);
-    m_bsphere.Render();                   
-  //}
+    m_bsphere.Render();
+  }
 }
 
 void directLightPass()
 {
   // Directional Light Pass
   m_DSDirLightPassTech.Start();
+  m_quad.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 8.0, 16.0));
   m_DSDirLightPassTech.SetEyeWorldPos(glm::vec3(camera.x(), camera.y(), camera.z()));
   glm::mat4 WVP = glm::mat4(1.0f);
   m_DSDirLightPassTech.SetWVP(WVP);
@@ -431,12 +433,8 @@ void render()
   glDisable(GL_DEPTH_TEST);
 
   beginLightPass();
-
-  for(int i = 0; i < (sizeof(m_pointLight)/sizeof(m_pointLight[0])); i++)
-  {
-    pointLightPass(i);
-    directLightPass();
-  }
+  pointLightPass();
+  directLightPass();
 
   /*
   if(platform.ison())
@@ -533,6 +531,12 @@ bool keyboard(float dt)
         return false;
       }
 
+      // Print Camera
+      if(e.key.keysym.sym == SDLK_p)
+      {
+        camera.print();
+      }
+
       // move up
       if (e.key.keysym.sym == SDLK_w)
       {
@@ -604,17 +608,47 @@ bool keyboard(float dt)
       {
         camera.focusLateral(1.0);
       }
-      //camera.print();
-
-      if(e.key.keysym.sym == SDLK_n)
-      {
-        //box.toggle();
-      }
 
       if(e.key.keysym.sym == SDLK_m)
       {
-        platform.toggle();
+        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x+2, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
       }
+      if(e.key.keysym.sym == SDLK_n)
+      {
+        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x-2, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+      }
+      if(e.key.keysym.sym == SDLK_b)
+      {
+        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x, m_pointLight[0].Position.y+2, m_pointLight[0].Position.z);
+        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+      }
+      if(e.key.keysym.sym == SDLK_v)
+      {
+        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x, m_pointLight[0].Position.y-2, m_pointLight[0].Position.z);
+        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+      }
+      if(e.key.keysym.sym == SDLK_c)
+      {
+        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z+2);
+        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+      }
+      if(e.key.keysym.sym == SDLK_x)
+      {
+        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z-2);
+        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+      }
+
+      if (e.key.keysym.sym == SDLK_MINUS)
+      {
+        m_dirLight.DiffuseIntensity += 0.1f;
+      }
+      if (e.key.keysym.sym == SDLK_EQUALS)
+      {
+        m_dirLight.DiffuseIntensity -= 0.1f;
+      }
+
     }
   }
 

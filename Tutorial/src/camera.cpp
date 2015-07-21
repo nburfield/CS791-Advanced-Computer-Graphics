@@ -7,15 +7,15 @@ Camera::Camera()
   //0,5,12 << Previous Default Values
 
   x_view_update = y_view_update = z_view_update = 0;
-  x_view_next = x_view = 0.0;
-  y_view_next = y_view = 0.0;
-  z_view_next = z_view = 0.0;
+  x_view_next = x_view = -16.000000;
+  y_view_next = y_view = 4.000000;
+  z_view_next = z_view = 18.000000;
   x_view = -40.0;
   y_view = -30.0;
   z_view = 20.0;
-  x_focus_next = x_focus = 0.0;
-  y_focus_next = y_focus = 0.0;
-  z_focus_next = z_focus = 1.0;
+  x_focus_next = x_focus = 15.999996;
+  y_focus_next = y_focus = 2.000001;
+  z_focus_next = z_focus = 8.999996;
 
 
   mode = 0;
@@ -226,7 +226,7 @@ bool Camera::inFocus()
 
 void Camera::print()
 {
-  printf("Location(%f, %f, %f) - Focus(%f, %f, %f)", (x_view + x_view_update), (y_view + y_view_update), (z_view + z_view_update), x_focus, y_focus, z_focus);
+  printf("Location(%f, %f, %f) - Focus(%f, %f, %f)\n", (x_view + x_view_update), (y_view + y_view_update), (z_view + z_view_update), x_focus, y_focus, z_focus);
 }
 
 float Camera::x()
