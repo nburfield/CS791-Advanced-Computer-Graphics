@@ -141,6 +141,20 @@ bool initilize()
     printf("Unable to use VSync: %s\n", SDL_GetError());
   }
 
+  // Init glew if not a mac
+  #if !defined(__APPLE__) && !defined(MACOSX)
+    cout << glewGetString(GLEW_VERSION) << endl;
+    glewExperimental = GL_TRUE;
+
+    auto status = glewInit();
+    //Check for error
+    if (status != GLEW_OK)
+    {
+      //std::cerr << "GLEW Error: " << glewGetErrorString(status) << "\n";
+      return false;
+    }
+  #endif
+
   // Start Text Input
   SDL_StartTextInput();
 
@@ -201,7 +215,11 @@ bool initilize()
 
   for(int i = 0; i < 5; i++)
   {
-    box[i].LoadMesh("../data/wood_box.obj");
+    if(!box[i].LoadMesh("../data/wood_box.obj"))
+    {
+      printf("There was an error loading one box\n");
+      return false;
+    }
   }
   //float angle = 0.3 * M_PI/2;
   

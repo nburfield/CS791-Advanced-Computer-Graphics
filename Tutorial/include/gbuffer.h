@@ -14,6 +14,8 @@
   #include <GL/glew.h>
   #include <GL/glu.h>
 #endif
+
+#include <string.h>
 #include <iostream>
 
 #define GBUFFER_POSITION_TEXTURE_UNIT 0
