@@ -4,7 +4,11 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-#include <OpenGL/GLU.h>
+#if defined(__APPLE__) || defined(MACOSX)
+  #include <OpenGL/GLU.h>
+#else //linux as default
+  #include <GL/glu.h>
+#endif
 
 class Shader
    {
