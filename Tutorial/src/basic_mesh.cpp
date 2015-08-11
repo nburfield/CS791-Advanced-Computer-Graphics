@@ -16,17 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
 
 #include <basic_mesh.h>
-
-using namespace std;
 
 #define POSITION_LOCATION 0
 #define TEX_COORD_LOCATION 1
 #define NORMAL_LOCATION 2
-
-#define ZERO_MEM(a) memset(a, 0, sizeof(a))
 
 BasicMesh::BasicMesh()
 {
@@ -61,7 +56,7 @@ void BasicMesh::Clear()
 bool BasicMesh::LoadMesh(const string& Filename)
 {
     // Release the previously loaded mesh (if it exists)
-    Clear();
+    // Clear();
  
     // Create the VAO
     glGenVertexArrays(1, &m_VAO);   
@@ -74,7 +69,7 @@ bool BasicMesh::LoadMesh(const string& Filename)
     Assimp::Importer Importer;
 
     const aiScene* pScene = Importer.ReadFile(Filename.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_FindDegenerates);
-    
+
     if (pScene) {
         Ret = InitFromScene(pScene, Filename);
     }
@@ -90,17 +85,21 @@ bool BasicMesh::LoadMesh(const string& Filename)
 
 bool BasicMesh::InitFromScene(const aiScene* pScene, const string& Filename)
 {  
+    printf("Begin The Init From Scene\n");
     m_Entries.resize(pScene->mNumMeshes);
     m_Textures.resize(pScene->mNumMaterials);
 
-    vector<Vector3f> Positions;
-    vector<Vector3f> Normals;
-    vector<Vector2f> TexCoords;
+    printf("Start the Vectors\n");
+    vector<glm::vec3> Positions;
+    vector<glm::vec3> Normals;
+    vector<glm::vec2> TexCoords;
     vector<unsigned int> Indices;
+    printf("End the vectors\n");
 
     unsigned int NumVertices = 0;
     unsigned int NumIndices = 0;
     
+    printf("Building The Indicies\n");
     // Count the number of vertices and indices
     for (unsigned int i = 0 ; i < m_Entries.size() ; i++) {
         m_Entries[i].MaterialIndex = pScene->mMeshes[i]->mMaterialIndex;        
@@ -111,6 +110,7 @@ bool BasicMesh::InitFromScene(const aiScene* pScene, const string& Filename)
         NumVertices += pScene->mMeshes[i]->mNumVertices;
         NumIndices  += m_Entries[i].NumIndices;
     }
+    printf("End Build of Indicies\n");
     
     // Reserve space in the vectors for the vertex attributes and indices
     Positions.reserve(NumVertices);
@@ -118,15 +118,19 @@ bool BasicMesh::InitFromScene(const aiScene* pScene, const string& Filename)
     TexCoords.reserve(NumVertices);
     Indices.reserve(NumIndices);
 
+    printf("Doing mesh init\n");
     // Initialize the meshes in the scene one by one
     for (unsigned int i = 0 ; i < m_Entries.size() ; i++) {
         const aiMesh* paiMesh = pScene->mMeshes[i];
         InitMesh(paiMesh, Positions, Normals, TexCoords, Indices);
     }
+    printf("End Mesh Init\n");
 
+    printf("Init Materials\n");
     if (!InitMaterials(pScene, Filename)) {
         return false;
     }
+    printf("End Init Materials\n");
 
     // Generate and populate the buffers with vertex attributes and the indices
     glBindBuffer(GL_ARRAY_BUFFER, m_Buffers[POS_VB]);
@@ -147,13 +151,21 @@ bool BasicMesh::InitFromScene(const aiScene* pScene, const string& Filename)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Buffers[INDEX_BUFFER]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices[0]) * Indices.size(), &Indices[0], GL_STATIC_DRAW);
 
-    return GLCheckError();
+    auto error = glGetError();
+    if ( error != GL_NO_ERROR )
+    {
+      string val = ErrorString( error );
+      std::cout<< "Error initializing OpenGL! " << error << ", " << val << std::endl;
+      return false;
+    }
+
+    return true;
 }
 
 void BasicMesh::InitMesh(const aiMesh* paiMesh,
-                    vector<Vector3f>& Positions,
-                    vector<Vector3f>& Normals,
-                    vector<Vector2f>& TexCoords,
+                    vector<glm::vec3>& Positions,
+                    vector<glm::vec3>& Normals,
+                    vector<glm::vec2>& TexCoords,
                     vector<unsigned int>& Indices)
 {    
     const aiVector3D Zero3D(0.0f, 0.0f, 0.0f);
@@ -164,9 +176,9 @@ void BasicMesh::InitMesh(const aiMesh* paiMesh,
         const aiVector3D* pNormal   = &(paiMesh->mNormals[i]);
         const aiVector3D* pTexCoord = paiMesh->HasTextureCoords(0) ? &(paiMesh->mTextureCoords[0][i]) : &Zero3D;
 
-        Positions.push_back(Vector3f(pPos->x, pPos->y, pPos->z));
-        Normals.push_back(Vector3f(pNormal->x, pNormal->y, pNormal->z));
-        TexCoords.push_back(Vector2f(pTexCoord->x, pTexCoord->y));
+        Positions.push_back(glm::vec3(pPos->x, pPos->y, pPos->z));
+        Normals.push_back(glm::vec3(pNormal->x, pNormal->y, pNormal->z));
+        TexCoords.push_back(glm::vec2(pTexCoord->x, pTexCoord->y));
     }
 
     // Populate the index buffer
@@ -201,7 +213,9 @@ bool BasicMesh::InitMaterials(const aiScene* pScene, const string& Filename)
     for (unsigned int i = 0 ; i < pScene->mNumMaterials ; i++) {
         const aiMaterial* pMaterial = pScene->mMaterials[i];
 
+        printf("Handle Texture\n");
         m_Textures[i] = NULL;
+        printf("Complete Texture Handle\n");
 
         if (pMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
             aiString Path;
@@ -258,13 +272,13 @@ void BasicMesh::Render()
     glBindVertexArray(0);
 }
 
-void BasicMesh::Render(unsigned int NumInstances, const Matrix4f* WVPMats, const Matrix4f* WorldMats)
+void BasicMesh::Render(unsigned int NumInstances, glm::mat4 WVPMats, glm::mat4 WorldMats)
 {        
     glBindBuffer(GL_ARRAY_BUFFER, m_Buffers[WVP_MAT_VB]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Matrix4f) * NumInstances, WVPMats, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * NumInstances, glm::value_ptr(WVPMats), GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, m_Buffers[WORLD_MAT_VB]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Matrix4f) * NumInstances, WorldMats, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * NumInstances, glm::value_ptr(WorldMats), GL_DYNAMIC_DRAW);
 
     glBindVertexArray(m_VAO);
     

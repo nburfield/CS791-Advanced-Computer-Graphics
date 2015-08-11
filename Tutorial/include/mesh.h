@@ -1,88 +1,75 @@
+
 /*
-  The mesh.cpp was refrenced From: http://ogldev.atspace.co.uk/
 
-  Additions have been made to it from: 
-                                      Nolan Burfield
+  Copyright 2011 Etay Meiri
 
-  This Class will read in an objects verticies, and the textures to each vertex.
-  Additions to it are the bullet library to implement physics on the objects.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-//Headers
 #ifndef MESH_H
-#define	MESH_H
+#define MESH_H
 
-//Main Headers
 #include <map>
 #include <vector>
-#include <texture.h>
-#include <iostream>
-using namespace std;
-
-//GLEW 
-#define GL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED
-
-#if defined(__APPLE__) || defined(MACOSX)
-  #include <OpenGL/gl3.h>
-  #include <OpenGL/GLU.h>
-#else //linux as default
-  #include <GL/glew.h>
-  #include <GL/glu.h>
-#endif
+#include <opengl_data.h>
 
 //Assimp
 #include <assimp/Importer.hpp> 
 #include <assimp/scene.h> 
-#include <assimp/postprocess.h> 
+#include <assimp/postprocess.h>
 
+#include <texture.h>
 
-//Structure to hold all verticies and UV
-struct Vertex
-   {
-    float position[3];
-    float uv[2];
-    float normal[3];
-   };
+#include <assert.h>
 
-//Mesh Class
 class Mesh
-   {
-    public:
-        Mesh();
-        ~Mesh();
+{
+public:
+    Mesh();
 
-        bool LoadMesh(const char* Filename);
-        void Render();
+    ~Mesh();
 
-    private:
-        bool InitFromScene(const aiScene* pScene, const std::string& Filename);
-        void InitMesh(unsigned int Index, const aiMesh* paiMesh);
-        bool InitMaterials(const aiScene* pScene, const std::string& Filename);
-        void Clear();
+    bool LoadMesh(const std::string& Filename);
 
-    #define INVALID_MATERIAL 0xFFFFFFFF
+    void Render();
 
-        //Structure to Hold rendering data
-        struct MeshEntry 
-           {
-            MeshEntry();
-            ~MeshEntry();
+private:
+    bool InitFromScene(const aiScene* pScene, const std::string& Filename);
+    void InitMesh(unsigned int Index, const aiMesh* paiMesh);
+    bool InitMaterials(const aiScene* pScene, const std::string& Filename);
+    void Clear();
 
-            void Init(const std::vector<Vertex>& Vertices,
-                      const std::vector<unsigned int>& Indices);
+#define INVALID_MATERIAL 0xFFFFFFFF
 
-            GLuint VB;
-            GLuint IB;
-            unsigned int NumIndices;
-            unsigned int MaterialIndex;
-           };
+    struct MeshEntry {
+        MeshEntry();
 
-        //Holds the Data in Vectors
-        std::vector<MeshEntry> m_Entries;
-        std::vector<Texture*> m_Textures;
-   };
+        ~MeshEntry();
+
+        void Init(const std::vector<Vertex>& Vertices,
+                  const std::vector<unsigned int>& Indices);
+
+        GLuint VB;
+        GLuint IB;
+        unsigned int NumIndices;
+        unsigned int MaterialIndex;
+    };
+
+    std::vector<MeshEntry> m_Entries;
+    std::vector<Texture*> m_Textures;
+};
 
 
-#endif	/* MESH_H */
+#endif  /* MESH_H */
 

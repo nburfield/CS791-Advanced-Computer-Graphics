@@ -20,6 +20,8 @@
 
 #include <light_pass.h>
 #include <lights_common.h>
+#include <limits.h>
+#include <string.h>
 
 class DSDirLightPassTech : public DSLightPassTech {
 public:

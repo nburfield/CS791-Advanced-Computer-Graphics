@@ -1,21 +1,6 @@
 // Includes for OpenGL related
 #include <SDL2/SDL.h>
-
-#define GL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED
-
-#if defined(__APPLE__) || defined(MACOSX)
-  #include <OpenGL/gl3.h>
-  #include <OpenGL/GLU.h>
-#else //linux as default
-  #include <GL/glew.h>
-  #include <GL/glu.h>
-#endif
-
-// GLM for matricies
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <opengl_data.h>
 
 // C++ Related Includes
 #include <iostream>
@@ -27,6 +12,10 @@
 #include <point_pass.h>
 #include <directional_pass.h>
 #include <gbuffer.h>
+#include <skybox_tech.h>
+#include <skybox.h>
+#include <particle_system.h>
+#include <null_technique.h>
 
 // Render Screen Width & height
 int width = 640, height = 480;
@@ -36,13 +25,15 @@ bool initilize();
 void InitLights();
 float CalcPointLightBSphere(const PointLight& Light);
 bool update();
-string ErrorString(GLenum error);
 void render();
 bool keyboard(float dt);
 void close();
+void geometryPass();
 void beginLightPass();
-void pointLightPass();
+void pointLightPass(int i);
+void DSStencilPass(unsigned int PointLightIndex);
 void directLightPass();
+void DSFinalPass();
 
 // SDL data
 SDL_Window* gWindow = NULL;
@@ -58,12 +49,13 @@ GLuint VBO;
 GLint VaoId;
 GLint loc_mvpmat;
 
-// Temp model
-glm::mat4 model;
+// Toggles
+bool SCALE = false;
+int MOVE_INDEX = 0;
 
 // Object
 Object box[5];
-Object platform;
+Object platform[5];
 
 // Deferred Shading Stuff
 GeomPass g_pass;
@@ -75,6 +67,9 @@ DirectionalLight m_dirLight;
 PointLight m_pointLight[3];
 Object m_bsphere;
 Object m_quad;
+SkyBox* m_pSkyBox;
+ParticleSystem m_particleSystem;
+NullTechnique m_nullTech;
 
 // Main Program
 int main(int argc, char **argv)
@@ -211,7 +206,13 @@ bool initilize()
   m_DSDirLightPassTech.SetNormalTextureUnit(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL);
   m_DSDirLightPassTech.SetDirectionalLight(m_dirLight);
   m_DSDirLightPassTech.SetScreenSize(width, height);
-  
+  m_DSDirLightPassTech.SetWVP(glm::mat4(1.0f));
+
+  if(!m_nullTech.Init())
+  {
+    printf("Null Tech Failed\n");
+    return false;
+  }
 
   for(int i = 0; i < 5; i++)
   {
@@ -221,21 +222,30 @@ bool initilize()
       return false;
     }
   }
-  //float angle = 0.3 * M_PI/2;
+
+  for(int i = 0; i < 5; i++)
+  {
+    if(!platform[i].LoadMesh("../data/earth.obj"))
+    {
+      printf("There was an error loading one earth\n");
+      return false;
+    }
+    platform[i].toggle();
+  }
   
   box[0].setPosition(glm::vec3(0.0f, 0.0f, 5.0f));
   box[1].setPosition(glm::vec3(6.0f, 1.0f, 10.0f));
   box[2].setPosition(glm::vec3(-5.0f, -1.0f, 12.0f));
   box[3].setPosition(glm::vec3(4.0f, 4.0f, 15.0f));
   box[4].setPosition(glm::vec3(-4.0f, 2.0f, 20.0f));
-  /*
-  box[0].model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 5.0f));
-  box[1].model = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 1.0f, 10.0f));
-  box[2].model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, -1.0f, 12.0f));
-  box[3].model = glm::translate(glm::mat4(1.0f), glm::vec3(4.0f, 4.0f, 15.0f));
-  box[4].model = glm::translate(glm::mat4(1.0f), glm::vec3(-4.0f, 2.0f, 20.0f));
-  */
-  if(!m_quad.LoadMesh("../data/quad.obj"))
+  platform[0].setPosition(glm::vec3(0.0f, 0.0f, 5.0f));
+  platform[1].setPosition(glm::vec3(6.0f, 1.0f, 10.0f));
+  platform[2].setPosition(glm::vec3(-5.0f, -1.0f, 12.0f));
+  platform[3].setPosition(glm::vec3(4.0f, 4.0f, 15.0f));
+  platform[4].setPosition(glm::vec3(-4.0f, 2.0f, 20.0f));
+  
+
+  if(!m_quad.LoadMesh("../data/sphere.obj"))
   {
     printf("Quad Failed to load.\n");
     return false;
@@ -246,7 +256,20 @@ bool initilize()
     printf("Sphere failed to load.\n");
     return false;
   }
-  //platform.LoadMesh("../data/earth.obj");
+
+  // Skybox
+  m_pSkyBox = new SkyBox();
+
+  if (!m_pSkyBox->Init(".", "../data/sp3right.jpg", "../data/sp3left.jpg", "../data/sp3top.jpg", "../data/sp3bot.jpg", "../data/sp3front.jpg", "../data/sp3back.jpg")) 
+  {
+    return false;
+  }
+
+  if(!m_particleSystem.InitParticleSystem(glm::vec3(0.0f, 0.0f, 5.0f)))
+  {
+    printf("Particle System Failed\n");
+    return false;
+  }
   
   // Camera
   camera.setThresh(20,10);
@@ -265,14 +288,14 @@ void InitLights()
   m_spotLight.Direction = glm::vec3(1.0f, -1.0f, 0.0f);
   m_spotLight.Cutoff =  20.0f;
 
-  m_dirLight.AmbientIntensity = 0.5f;
-  m_dirLight.Color = COLOR_CYAN;
+  m_dirLight.AmbientIntensity = 0.1f;
+  m_dirLight.Color = COLOR_WHITE;
   m_dirLight.DiffuseIntensity = 0.5f;
-  m_dirLight.Direction = glm::vec3(0.0f, -1.0f, 0.0f);
+  m_dirLight.Direction = glm::vec3(1.0f, 0.0f, 0.0f);
 
   m_pointLight[0].DiffuseIntensity = 10.2f;
   m_pointLight[0].Color = COLOR_GREEN;
-  m_pointLight[0].Position = glm::vec3(0.0f, 1.5f, 5.0f);
+  m_pointLight[0].Position = glm::vec3(0.0f, 1.5f, 15.0f);
   m_pointLight[0].Attenuation.Constant = 0.0f;
   m_pointLight[0].Attenuation.Linear = 0.0f;
   m_pointLight[0].Attenuation.Exp = 0.3f;
@@ -286,7 +309,7 @@ void InitLights()
 
   m_pointLight[2].DiffuseIntensity = 10.2f;
   m_pointLight[2].Color = COLOR_BLUE;
-  m_pointLight[2].Position = glm::vec3(0.0f, 0.0f, 3.0f);
+  m_pointLight[2].Position = glm::vec3(0.0f, 0.0f, 9.0f);
   m_pointLight[2].Attenuation.Constant = 0.0f;
   m_pointLight[2].Attenuation.Linear = 0.0f;        
   m_pointLight[2].Attenuation.Exp = 0.3f;
@@ -301,7 +324,8 @@ float CalcPointLightBSphere(const PointLight& Light)
               2 * Light.Attenuation.Exp;
   
   return ret;
-}    
+}
+
 
 bool update()
 {
@@ -317,44 +341,54 @@ bool update()
   for(int i = 0; i < 5; i++)
   {
     box[i].model = glm::translate(glm::mat4(1.0f), box[i].getPosition()) * glm::rotate(glm::mat4(1.0f), (angle), glm::vec3(0.0, 1.0, 0.0));
+    platform[i].model = glm::translate(glm::mat4(1.0f), platform[i].getPosition()) * glm::rotate(glm::mat4(1.0f), (angle), glm::vec3(0.0, 1.0, 0.0));
+    //box[i].model = glm::scale(box[i].model, glm::vec3(2,2,2));
   }
   
-  //platform.model = glm::rotate(glm::mat4(1.0f), (angle), glm::vec3(0.0, 1.0, 0.0));
-
   // All good
   return true;
 }
 
-string ErrorString(GLenum error)
+void geometryPass()
 {
-  if(error == GL_INVALID_ENUM)
+
+  g_pass.Start();
+  //g_buffer.BindForWriting();
+  g_buffer.BindForGeomPass();
+  
+  glDepthMask(GL_TRUE);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_DEPTH_TEST);
+
+  //glm::mat4 mvp = camera.getProjection() * camera.getView() * glm::translate(glm::mat4(1.0f), glm::vec3(0, 10, 0));
+  //g_pass.SetMVP(mvp);
+  //g_pass.SetModel(glm::translate(glm::mat4(1.0f), glm::vec3(0, 10, 0)));
+  //m_particleSystem.Render(getDT(), glm::translate(glm::mat4(1.0f), glm::vec3(0, 10, 0)), 
+  //                        glm::vec3(camera.x(), camera.y(), camera.z()));
+
+  for(int i = 1; i < (sizeof(box)/sizeof(box[0])); i++)
   {
-    return "GL_INVALID_ENUM: An unacceptable value is specified for an enumerated argument.";
+    if(box[i].ison())
+    {
+      glm::mat4 mvp = camera.getProjection() * camera.getView() * box[i].model;
+      g_pass.SetMVP(mvp);
+      g_pass.SetModel(box[i].model);
+      box[i].Render();
+
+    }
+    else
+    {
+      glm::mat4 mvp = camera.getProjection() * camera.getView() * platform[i].model;
+      g_pass.SetMVP(mvp);
+      g_pass.SetModel(platform[i].model);
+      platform[i].Render(); 
+    }
   }
 
-  else if(error == GL_INVALID_VALUE)
-  {
-    return "GL_INVALID_VALUE: A numeric argument is out of range.";
-  }
 
-  else if(error == GL_INVALID_OPERATION)
-  {
-    return "GL_INVALID_OPERATION: The specified operation is not allowed in the current state.";
-  }
-
-  else if(error == GL_INVALID_FRAMEBUFFER_OPERATION)
-  {
-    return "GL_INVALID_FRAMEBUFFER_OPERATION: The framebuffer object is not complete.";
-  }
-
-  else if(error == GL_OUT_OF_MEMORY)
-  {
-    return "GL_OUT_OF_MEMORY: There is not enough memory left to execute the command.";
-  }
-  else
-  {
-    return "None";
-  }
+  // When we get here the depth buffer is already populated and the stencil pass
+  // depends on it, but it does not write to it.
+  glDepthMask(GL_FALSE);
 }
 
 void beginLightPass()
@@ -367,143 +401,141 @@ void beginLightPass()
   glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void pointLightPass()
+void pointLightPass(int i)
 {
+  g_buffer.BindForLightPass();
+
   // Point Light Pass
   m_DSPointLightPassTech.Start();
-  m_DSPointLightPassTech.SetEyeWorldPos(glm::vec3(camera.x(), camera.y(), camera.z()));        
+  m_DSPointLightPassTech.SetEyeWorldPos(glm::vec3(camera.x(), camera.y(), camera.z()));
 
-  for (unsigned int i = 0 ; i < (sizeof(m_pointLight)/sizeof(m_pointLight[0])); i++) 
+  glStencilFunc(GL_NOTEQUAL, 0, 0xFF);
+    
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendEquation(GL_FUNC_ADD);
+  glBlendFunc(GL_ONE, GL_ONE);
+
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_FRONT);
+
+  glm::vec3 worldPos = m_pointLight[i].Position;
+  float BSphereScale = CalcPointLightBSphere(m_pointLight[i]);
+  m_bsphere.model = glm::translate(glm::mat4(1.0f), worldPos);
+
+  if(SCALE)
   {
-    m_DSPointLightPassTech.SetPointLight(m_pointLight[i]);            
-    //p.WorldPos(m_pointLight[i].Position);
-    glm::vec3 worldPos = m_pointLight[i].Position;
-    float BSphereScale = CalcPointLightBSphere(m_pointLight[i]);
-    m_bsphere.model = glm::translate(glm::mat4(1.0f), worldPos) ;//* glm::scale(glm::mat4(1.0f), glm::vec3(BSphereScale, BSphereScale, BSphereScale));
-    //p.Scale(BSphereScale, BSphereScale, BSphereScale);  
-    //m_DSPointLightPassTech.SetWVP(p.GetWVPTrans());
-    //glm::mat4 mvp = camera.getProjection() * camera.getView() * m_bsphere.model;
     m_bsphere.model = glm::scale(m_bsphere.model, glm::vec3(BSphereScale, BSphereScale, BSphereScale));
-    glm::mat4 mvp = camera.getProjection() * camera.getView() * m_bsphere.model;
-    m_DSPointLightPassTech.SetWVP(mvp);
-    m_bsphere.Render();
   }
+  
+  glm::mat4 mvp = camera.getProjection() * camera.getView() * m_bsphere.model;
+  m_DSPointLightPassTech.SetWVP(mvp);
+  m_DSPointLightPassTech.SetPointLight(m_pointLight[i]);            
+  m_bsphere.Render();
+
+  glCullFace(GL_BACK);
+  glDisable(GL_BLEND);
 }
+
+void DSStencilPass(unsigned int PointLightIndex)
+{
+  m_nullTech.Start();
+
+  // Disable color/depth write and enable stencil
+  g_buffer.BindForStencilPass();
+
+  glEnable(GL_DEPTH_TEST);
+  glDisable(GL_CULL_FACE);
+  glClear(GL_STENCIL_BUFFER_BIT);
+
+  // We need the stencil test to be enabled but we want it
+  // to succeed always. Only the depth test matters.
+  glStencilFunc(GL_ALWAYS, 0, 0);
+
+  glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
+  glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
+
+  glm::vec3 worldPos = m_pointLight[PointLightIndex].Position;
+  float BBoxScale = CalcPointLightBSphere(m_pointLight[PointLightIndex]);
+
+  m_bsphere.model = glm::translate(glm::mat4(1.0f), worldPos);
+
+  if(SCALE)
+  {
+    m_bsphere.model = glm::scale(m_bsphere.model, glm::vec3(BBoxScale, BBoxScale, BBoxScale));
+  }
+
+  glm::mat4 mvp = camera.getProjection() * camera.getView() * m_bsphere.model;
+  m_nullTech.SetWVP(mvp);
+  m_bsphere.Render();
+
+}
+
 
 void directLightPass()
 {
+  g_buffer.BindForLightPass();
+
   // Directional Light Pass
   m_DSDirLightPassTech.Start();
-  m_quad.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 8.0, 16.0));
   m_DSDirLightPassTech.SetEyeWorldPos(glm::vec3(camera.x(), camera.y(), camera.z()));
-  glm::mat4 WVP = glm::mat4(1.0f);
-  m_DSDirLightPassTech.SetWVP(WVP);
+  m_DSDirLightPassTech.SetDirectionalLight(m_dirLight);
+
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendEquation(GL_FUNC_ADD);
+  glBlendFunc(GL_ONE, GL_ONE);
+
+  m_quad.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, 0.0));
+  m_quad.model = glm::scale(m_quad.model, glm::vec3(1,1,1));
+  glm::mat4 loc = glm::mat4(1.0);
+  m_DSDirLightPassTech.SetWVP(m_quad.model);
   m_quad.Render();
+  
+  glDisable(GL_BLEND);
+}
+
+void DSFinalPass()
+{
+  g_buffer.BindForFinalPass();
+  glBlitFramebuffer(0, 0, width, height, 
+                    0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }
 
 void render()
-{
-  g_pass.Start();
-  g_buffer.BindForWriting();
+{ 
+  //m_particleSystem.Render(getDT(), glm::translate(glm::mat4(1.0f), glm::vec3(0, 10, 0)), 
+  //                        glm::vec3(camera.x(), camera.y(), camera.z()));
+  //m_pSkyBox->Render(camera.getProjection(), camera.getView(), 
+  //                  glm::translate(glm::mat4(1.0f), glm::vec3(camera.x(), camera.y(), camera.z())));
 
-  glDepthMask(GL_TRUE);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_DEPTH_TEST);
-  glDisable(GL_BLEND);
-  //glDepthFunc(GL_LESS);
-  //glEnable(GL_CULL_FACE);
-  //glCullFace(GL_FRONT);
-  //glClearColor(0.f, 0.f, 0.5f, 0.f);
 
-  for(int i = 0; i < sizeof(box)/sizeof(box[0]); i++)
-  {
-    if(box[i].ison())
-    {
-      glm::mat4 mvp = camera.getProjection() * camera.getView() * box[i].model;
-      //glUniformMatrix4fv(loc_mvpmat, 1, GL_FALSE, glm::value_ptr(mvp));
-      g_pass.SetMVP(mvp);
-      g_pass.SetModel(box[i].model);
-      box[i].Render();
-    }
-  }
 
-  // When we get here the depth buffer is already populated and the stencil pass
-  // depends on it, but it does not write to it.
-  glDepthMask(GL_FALSE);
-  glDisable(GL_DEPTH_TEST);
+  g_buffer.StartFrame();
 
-  beginLightPass();
-  pointLightPass();
-  directLightPass();
+  m_pSkyBox->Render(camera.getProjection(), camera.getView(), 
+                    glm::translate(glm::mat4(1.0f), glm::vec3(camera.x(), camera.y(), camera.z())));
 
-  /*
-  if(platform.ison())
-  {
-    glm::mat4 mvp = camera.getProjection() * camera.getView() * platform.model;
-    //glUniformMatrix4fv(loc_mvpmat, 1, GL_FALSE, glm::value_ptr(mvp));
-    g_pass.SetMVP(mvp);
-    g_pass.SetModel(platform.model);
-    platform.Render(loc_position, loc_tex, loc_normal);
-  }
-  */
-  //glEnableVertexAttribArray(0);
-  //glEnableVertexAttribArray(1);
-  //glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(V2), 0);
-  //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(V2), (void*)offsetof(V2,color));
-  //glDrawArrays(GL_TRIANGLES, 0, 36);
-  //glDisableVertexAttribArray(0);
-  //glDisableVertexAttribArray(1);
 
-  /*
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  g_buffer.BindForReading();
-  GLint HalfWidth = (GLint)(width/2.0f);
-  GLint HalfHeight = (GLint)(height/2.0f);
-
-  g_buffer.SetReadBuffer(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION);
-  glBlitFramebuffer(0, 0, width, height, 0, 0, HalfWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-  g_buffer.SetReadBuffer(GBuffer::GBUFFER_TEXTURE_TYPE_DIFFUSE);
-  glBlitFramebuffer(0, 0, width, height, 0, HalfHeight, HalfWidth, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-  g_buffer.SetReadBuffer(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL);
-  glBlitFramebuffer(0, 0, width, height, HalfWidth, HalfHeight, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-  g_buffer.SetReadBuffer(GBuffer::GBUFFER_TEXTURE_TYPE_TEXCOORD);
-  glBlitFramebuffer(0, 0, width, height, HalfWidth, 0, width, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-  */
+  geometryPass();
   
 
-  /*///////////////////////////////////////////////////////////////////////////////////////
-    // Get world trans
-    glm::mat4 ScaleTrans, RotateTrans, TranslationTrans, CameraTranslationTrans, CameraRotateTrans;
+  glEnable(GL_STENCIL_TEST);
+  for (unsigned int i = 0 ; i < (sizeof(m_pointLight)/sizeof(m_pointLight[0])); i++)
+  {
+    DSStencilPass(i);
+    pointLightPass(i);
+  }
+  glDisable(GL_STENCIL_TEST);
+  
+m_particleSystem.Render(getDT(), glm::translate(glm::mat4(1.0f), glm::vec3(0, 10, 0)), 
+                        glm::vec3(camera.x(), camera.y(), camera.z()));
 
-    ScaleTrans.InitScaleTransform(BSphereScale, BSphereScale, BSphereScale);
-    RotateTrans.InitRotateTransform(0.0, 0.0, 0.0);
-    TranslationTrans.InitTranslationTransform(worldPos.x, worldPos.y, worldPos.z);
+  //beginLightPass();
+  //pointLightPass();
+  directLightPass();
+  DSFinalPass();
 
-    glm::mat4 m_Wtransformation = TranslationTrans * RotateTrans * ScaleTrans;
-
-    // get view trans
-
-    CameraTranslationTrans.InitTranslationTransform(-camera.x(), -camera.y(), -camera.z());
-
-    glm::vec3 focus = camera.getFocus();
-    CameraRotateTrans.InitCameraTransform(focus, (0, 1, 0));
-
-    glm::mat4 m_Vtransformation = CameraRotateTrans * CameraTranslationTrans;
-
-    // Get VP Trans
-    Matrix4f PersProjTrans;
-    PersProjTrans.InitPersProjTransform(m_persProjInfo);
-    
-    glm::mat4 m_VPtransformation = PersProjTrans * m_Vtransformation;
-
-    glm::mat4 m_WVPtransformation = m_VPtransformation * m_Wtransformation;
-  *////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
   auto error = glGetError();
   if ( error != GL_NO_ERROR )
   {
@@ -535,6 +567,7 @@ bool keyboard(float dt)
       if(e.key.keysym.sym == SDLK_p)
       {
         camera.print();
+        printf("Location: %f, %f, %f\n", m_pointLight[MOVE_INDEX].Position.x, m_pointLight[MOVE_INDEX].Position.y, m_pointLight[MOVE_INDEX].Position.z);
       }
 
       // move up
@@ -611,42 +644,63 @@ bool keyboard(float dt)
 
       if(e.key.keysym.sym == SDLK_m)
       {
-        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x+2, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
-        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+        m_pointLight[MOVE_INDEX].Position = glm::vec3(m_pointLight[MOVE_INDEX].Position.x+2, m_pointLight[MOVE_INDEX].Position.y, m_pointLight[MOVE_INDEX].Position.z);
       }
       if(e.key.keysym.sym == SDLK_n)
       {
-        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x-2, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
-        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+        m_pointLight[MOVE_INDEX].Position = glm::vec3(m_pointLight[MOVE_INDEX].Position.x-2, m_pointLight[MOVE_INDEX].Position.y, m_pointLight[MOVE_INDEX].Position.z);
       }
       if(e.key.keysym.sym == SDLK_b)
       {
-        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x, m_pointLight[0].Position.y+2, m_pointLight[0].Position.z);
-        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+        m_pointLight[MOVE_INDEX].Position = glm::vec3(m_pointLight[MOVE_INDEX].Position.x, m_pointLight[MOVE_INDEX].Position.y+2, m_pointLight[MOVE_INDEX].Position.z);
       }
       if(e.key.keysym.sym == SDLK_v)
       {
-        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x, m_pointLight[0].Position.y-2, m_pointLight[0].Position.z);
-        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+        m_pointLight[MOVE_INDEX].Position = glm::vec3(m_pointLight[MOVE_INDEX].Position.x, m_pointLight[MOVE_INDEX].Position.y-2, m_pointLight[MOVE_INDEX].Position.z);
       }
       if(e.key.keysym.sym == SDLK_c)
       {
-        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z+2);
-        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+        m_pointLight[MOVE_INDEX].Position = glm::vec3(m_pointLight[MOVE_INDEX].Position.x, m_pointLight[MOVE_INDEX].Position.y, m_pointLight[MOVE_INDEX].Position.z+2);
       }
       if(e.key.keysym.sym == SDLK_x)
       {
-        m_pointLight[0].Position = glm::vec3(m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z-2);
-        printf("Location: %f, %f, %f\n", m_pointLight[0].Position.x, m_pointLight[0].Position.y, m_pointLight[0].Position.z);
+        m_pointLight[MOVE_INDEX].Position = glm::vec3(m_pointLight[MOVE_INDEX].Position.x, m_pointLight[MOVE_INDEX].Position.y, m_pointLight[MOVE_INDEX].Position.z-2);
       }
 
       if (e.key.keysym.sym == SDLK_MINUS)
       {
         m_dirLight.DiffuseIntensity += 0.1f;
+        m_DSDirLightPassTech.SetDirectionalLight(m_dirLight);
       }
       if (e.key.keysym.sym == SDLK_EQUALS)
       {
         m_dirLight.DiffuseIntensity -= 0.1f;
+        m_DSDirLightPassTech.SetDirectionalLight(m_dirLight);
+      }
+
+      if (e.key.keysym.sym == SDLK_z)
+      {
+        SCALE = !SCALE;
+      }
+      if (e.key.keysym.sym == SDLK_o)
+      {
+        MOVE_INDEX++;
+        if(MOVE_INDEX > 2)
+        {
+          MOVE_INDEX = 0;
+        }
+      }
+
+      if (e.key.keysym.sym == SDLK_i)
+      {
+        for(int i = 0; i < (sizeof(box)/sizeof(box[0])); i++)
+        {
+          box[i].toggle();
+        }
+        for(int i = 0; i < (sizeof(platform)/sizeof(platform[0])); i++)
+        {
+          platform[i].toggle();
+        }
       }
 
     }

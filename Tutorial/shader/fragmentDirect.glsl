@@ -35,7 +35,7 @@ struct SpotLight
 };
 
 uniform sampler2D gPositionMap;
-uniform sampler2D myTextureSampler;
+uniform sampler2D gColorMap;
 uniform sampler2D gNormalMap;
 uniform DirectionalLight gDirectionalLight;
 uniform PointLight gPointLight;
@@ -88,10 +88,13 @@ vec4 CalcPointLight(vec3 WorldPos, vec3 Normal)
 
     vec4 Color = CalcLightInternal(gPointLight.Base, LightDirection, WorldPos, Normal);
 
-    float Atten =  gPointLight.Atten.Constant + gPointLight.Atten.Linear * Distance + gPointLight.Atten.Exp * Distance * Distance;
+    float Atte =  gPointLight.Atten.Constant +
+                         gPointLight.Atten.Linear * Distance +
+                         gPointLight.Atten.Exp * Distance * Distance;
 
-    Atten = max(1.0, Atten);
-    return Color / Atten;
+    Atte = max(1.0, Atte);
+
+    return Color / Atte;
 }
 
 
@@ -104,9 +107,9 @@ out vec4 FragColor;
 
 void main()
 {
-  vec2 TexCoord = CalcTexCoord();
+    vec2 TexCoord = CalcTexCoord();
   vec3 WorldPos = texture(gPositionMap, TexCoord).xyz;
-  vec3 Color = texture(myTextureSampler, TexCoord).xyz;
+  vec3 Color = texture(gColorMap, TexCoord).xyz;
   vec3 Normal = texture(gNormalMap, TexCoord).xyz;
   Normal = normalize(Normal);
 

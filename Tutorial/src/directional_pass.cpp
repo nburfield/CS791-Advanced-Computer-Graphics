@@ -16,10 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <limits.h>
-#include <string.h>
-
-#include "directional_pass.h"
+#include <directional_pass.h>
 
 
 DSDirLightPassTech::DSDirLightPassTech()
@@ -28,9 +25,10 @@ DSDirLightPassTech::DSDirLightPassTech()
 
 bool DSDirLightPassTech::Init()
 {
-    if (!Program::Init()) {
-        return false;
-    }
+  if (!Program::Init()) 
+  {
+    return false;
+  }
 
   Shader vertex, fragment;
   if(!vertex.Initilize("../shader/vertLightPass.glsl", GL_VERTEX_SHADER, program))
@@ -90,7 +88,7 @@ void DSDirLightPassTech::SetDirectionalLight(const DirectionalLight& Light)
     glUniform3f(m_dirLightLocation.Color, Light.Color.x, Light.Color.y, Light.Color.z);
     glUniform1f(m_dirLightLocation.AmbientIntensity, Light.AmbientIntensity);
     glm::vec3 Direction = Light.Direction;
-    Direction = glm::normalize(Direction);
+    //Direction = glm::normalize(Direction);
     glUniform3f(m_dirLightLocation.Direction, Direction.x, Direction.y, Direction.z);
     glUniform1f(m_dirLightLocation.DiffuseIntensity, Light.DiffuseIntensity);
 }

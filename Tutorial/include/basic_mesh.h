@@ -21,29 +21,28 @@
 
 #include <map>
 #include <vector>
-#include <GL/glew.h>
-#include <Importer.hpp>      // C++ importer interface
-#include <scene.h>       // Output data structure
-#include <postprocess.h> // Post processing flags
+#include <opengl_data.h>
 
-#include "ogldev_util.h"
-#include "ogldev_math_3d.h"
-#include "ogldev_texture.h"
-#include "ogldev_pipeline.h"
+//Assimp
+#include <assimp/Importer.hpp> 
+#include <assimp/scene.h> 
+#include <assimp/postprocess.h>
 
-struct Vertex
+#include <texture.h>
+
+#include <assert.h>
+
+struct Orientation
 {
-    Vector3f m_pos;
-    Vector2f m_tex;
-    Vector3f m_normal;
-
-    Vertex() {}
-
-    Vertex(const Vector3f& pos, const Vector2f& tex, const Vector3f& normal)
+    glm::vec3 m_scale;
+    glm::vec3 m_rotation;
+    glm::vec3 m_pos;       
+    
+    Orientation()
     {
-        m_pos    = pos;
-        m_tex    = tex;
-        m_normal = normal;
+        m_scale    = glm::vec3(1.0f, 1.0f, 1.0f);
+        m_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+        m_pos      = glm::vec3(0.0f, 0.0f, 0.0f);
     }
 };
 
@@ -59,16 +58,16 @@ public:
 
     void Render();
   
-    void Render(unsigned int NumInstances, const Matrix4f* WVPMats, const Matrix4f* WorldMats);
+    void Render(unsigned int NumInstances, glm::mat4 WVPMats, glm::mat4 WorldMats);
     
     Orientation& GetOrientation() { return m_orientation; }
 
 private:
     bool InitFromScene(const aiScene* pScene, const std::string& Filename);
     void InitMesh(const aiMesh* paiMesh,
-                  std::vector<Vector3f>& Positions,
-                  std::vector<Vector3f>& Normals,
-                  std::vector<Vector2f>& TexCoords,
+                  std::vector<glm::vec3>& Positions,
+                  std::vector<glm::vec3>& Normals,
+                  std::vector<glm::vec2>& TexCoords,
                   std::vector<unsigned int>& Indices);
 
     bool InitMaterials(const aiScene* pScene, const std::string& Filename);

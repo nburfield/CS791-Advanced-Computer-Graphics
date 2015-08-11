@@ -28,7 +28,7 @@ DSLightPassTech::DSLightPassTech()
 
 bool DSLightPassTech::Init()
 {
-  m_WVPLocation = glGetUniformLocation(program, const_cast<const char*>("mvpMatrix"));
+  m_WVPLocation = glGetUniformLocation(program, const_cast<const char*>("gWVP"));
   if(m_WVPLocation == -1)
   {
     printf("m_WVPLocation NOT FOUND\n");
@@ -40,7 +40,7 @@ bool DSLightPassTech::Init()
     printf("m_posTextureUnitLocation NOT FOUND\n");
     return false;
   }
-  m_colorTextureUnitLocation = glGetUniformLocation(program, const_cast<const char*>("myTextureSampler"));
+  m_colorTextureUnitLocation = glGetUniformLocation(program, const_cast<const char*>("gColorMap"));
   if(m_colorTextureUnitLocation == -1)
   {
     printf("m_colorTextureUnitLocation NOT FOUND\n");

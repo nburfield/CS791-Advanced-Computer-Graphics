@@ -5,25 +5,13 @@
 #ifndef GBUFFER_H
 #define GBUFFER_H
 
-#define GL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED
-
-#if defined(__APPLE__) || defined(MACOSX)
-  #include <OpenGL/gl3.h>
-  #include <OpenGL/GLU.h>
-#else //linux as default
-  #include <GL/glew.h>
-  #include <GL/glu.h>
-#endif
-
+#include <opengl_data.h>
 #include <string.h>
-#include <iostream>
 
 #define GBUFFER_POSITION_TEXTURE_UNIT 0
 #define GBUFFER_DIFFUSE_TEXTURE_UNIT  1
 #define GBUFFER_NORMAL_TEXTURE_UNIT   2
 #define GBUFFER_TEXCOORD_TEXTURE_UNIT 3
-
-#define ZERO_MEM(a) memset(a, 0, sizeof(a))
 
 class GBuffer
 {
@@ -44,10 +32,17 @@ class GBuffer
     void BindForReading();  
     void SetReadBuffer(GBUFFER_TEXTURE_TYPE TextureType);
 
+    void StartFrame();
+    void BindForGeomPass();
+    void BindForStencilPass();
+    void BindForLightPass();
+    void BindForFinalPass();
+
   private:
     GLuint m_fbo;
     GLuint m_textures[GBUFFER_NUM_TEXTURES];
     GLuint m_depthTexture;
+    GLuint m_finalTexture;
 };
 
 #endif

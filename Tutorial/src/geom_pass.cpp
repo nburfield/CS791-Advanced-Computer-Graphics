@@ -15,12 +15,12 @@ bool GeomPass::Init()
   Program::Init();
   // Start Shaders
   Shader vertex, fragment;
-  if(!vertex.Initilize("../shader/vertexShader.glsl", GL_VERTEX_SHADER, program))
+  if(!vertex.Initilize("../shader/geometry_pass_vertex.glsl", GL_VERTEX_SHADER, program))
   {
     return false;
   }
   std::cout<<"Geometry Vertex Shader Success"<<std::endl;
-  if(!fragment.Initilize("../shader/fragmentShader.glsl", GL_FRAGMENT_SHADER, program))
+  if(!fragment.Initilize("../shader/geometry_pass_fragment.glsl", GL_FRAGMENT_SHADER, program))
   {
     return false;
   }
@@ -38,7 +38,7 @@ bool GeomPass::Init()
   }
 
   // Get uniform locations of the objects
-  mvp = glGetUniformLocation(program, const_cast<const char*>("mvpMatrix"));
+  mvp = glGetUniformLocation(program, const_cast<const char*>("gWVP"));
   if(mvp == -1)
   {
     printf("gWVP NOT FOUND\n");
@@ -52,7 +52,7 @@ bool GeomPass::Init()
     return false;
   }
 
-  texture = glGetUniformLocation(program, const_cast<const char*>("myTextureSampler"));
+  texture = glGetUniformLocation(program, const_cast<const char*>("gColorMap"));
   if(texture == -1)
   {
     printf("ColorMap NOT FOUND\n");

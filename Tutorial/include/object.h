@@ -5,7 +5,8 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include <mesh.h>
+//#include <basic_mesh.h>
+#include <mesh2.h>
 
 // GLM for matricies
 #define GLM_FORCE_RADIANS
@@ -13,7 +14,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-class Object : public Mesh
+class Object : public BasicMesh
 {
   public:
     Object();
