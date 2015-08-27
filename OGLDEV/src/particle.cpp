@@ -65,7 +65,7 @@ SDL_Window* gWindow = NULL;
 SDL_GLContext gContext;
 
 //Time function
-float getdt();
+unsigned int getDT();
 std::chrono::time_point<std::chrono::high_resolution_clock> t1,t2;
 
 // OpenGL Buffers
@@ -534,10 +534,6 @@ void render()
   DSFinalPass();
 */
 
-  long long TimeNowMillis = GetCurrentTimeMillis();
-  assert(TimeNowMillis >= m_currentTimeMillis);
-  unsigned int DeltaTimeMillis = (unsigned int)(TimeNowMillis - m_currentTimeMillis);
-  m_currentTimeMillis = TimeNowMillis;
   m_pGameCamera->OnRender();
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -558,7 +554,8 @@ void render()
 
   m_pGround->Render();
 
-  m_particleSystem.Render(DeltaTimeMillis, p.GetVPTrans(), m_pGameCamera->GetPos());
+  unsigned int DT = getDT();
+  m_particleSystem.Render(DT, p.GetVPTrans(), m_pGameCamera->GetPos());
 
   auto error = glGetError();
   if ( error != GL_NO_ERROR )
@@ -730,7 +727,7 @@ void close()
   SDL_Quit();
 }
 
-/*
+
 unsigned int getDT()
 {
   long long TimeNowMillis = GetCurrentTimeMillis();
@@ -739,8 +736,9 @@ unsigned int getDT()
   m_currentTimeMillis = TimeNowMillis;
   return DeltaTimeMillis;
 }
-*/
 
+
+/*
 float getdt()
 {
   float ret;
@@ -749,3 +747,4 @@ float getdt()
   t1 = std::chrono::high_resolution_clock::now();
   return ret;
 }
+*/

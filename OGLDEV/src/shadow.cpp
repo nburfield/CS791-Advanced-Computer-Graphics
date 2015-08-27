@@ -15,6 +15,10 @@ using namespace std;
 #endif
 
 // C++ Related Includes
+#include <stdlib.h>
+#include <math.h>
+#include <assert.h>
+
 #include <chrono>
 #include <gbuffer.h>
 #include <null_technique.h>
@@ -30,9 +34,16 @@ using namespace std;
 #include "ogldev_basic_mesh.h"
 #include "gbuffer.h"
 #include "lights_common.h"
+#include "particle_system.h"
+//#include "ogldev_basic_lighting.h"
+#include "mesh.h"
+#include "billboard_list.h"
+#include "lighting_technique.h"
+#include "shadow_map_technique.h"
+#include "shadow_map_fbo.h"
 
-#define WINDOW_WIDTH  1280
-#define WINDOW_HEIGHT 1024
+#define WINDOW_WIDTH  840
+#define WINDOW_HEIGHT 680
 
 // Render Screen Width & height
 int width = 640, height = 480;
@@ -40,7 +51,6 @@ int width = 640, height = 480;
 // OpenGL necessary functions
 bool initilize();
 void InitLights();
-void InitBoxPos();
 float CalcPointLightBSphere(const PointLight& Light);
 bool update();
 void render();
@@ -52,6 +62,10 @@ void DSStencilPass(unsigned int PointLightIndex);
 void DSPointLightPass(unsigned int PointLightIndex);
 void DSDirectionalLightPass();
 void DSFinalPass();
+unsigned int getDT();
+
+void ShadowMapPass();
+void RenderPass();
 
 // SDL data
 SDL_Window* gWindow = NULL;
@@ -67,6 +81,7 @@ GLint VaoId;
 GLint loc_mvpmat;
 
 // Toggles
+bool billboardTex = true;
 bool SCALE = false;
 int MOVE_INDEX = 0;
 
@@ -80,12 +95,25 @@ float m_scale;
 SpotLight m_spotLight;
 DirectionalLight m_dirLight;
 PointLight m_pointLight[3];
-BasicMesh m_box;
 BasicMesh m_bsphere;
 BasicMesh m_quad;
 PersProjInfo m_persProjInfo;
 GBuffer m_gbuffer;
-Vector3f m_boxPositions[5];
+
+long long m_currentTimeMillis;
+//BasicLightingTechnique* m_pLightingTechnique;
+Mesh* m_pGround;    
+Texture* m_pTexture;
+Texture* m_pNormalMap;
+BillboardList* m_billboardList;
+ParticleSystem* m_particleSystem;
+
+LightingTechnique* m_pLightingEffect;
+ShadowMapTechnique* m_pShadowMapEffect;
+Mesh* m_pMesh;
+Mesh* m_pQuad;
+ShadowMapFBO m_shadowMapFBO;
+
 
 // Main Program
 int main(int argc, char **argv)
@@ -158,24 +186,37 @@ bool initilize()
   glBindVertexArray(vao);
 
   // Init values
+  //m_pLightingTechnique = NULL;
   m_pGameCamera = NULL;
+  m_pTexture = NULL;
+  m_pGround = NULL;
+  m_pNormalMap = NULL;
   m_scale = 0.0f;
   m_persProjInfo.FOV = 60.0f;
   m_persProjInfo.Height = WINDOW_HEIGHT;
   m_persProjInfo.Width = WINDOW_WIDTH;
   m_persProjInfo.zNear = 1.0f;
-  m_persProjInfo.zFar = 100.0f;  
+  m_persProjInfo.zFar = 100.0f;
+  m_pLightingEffect = NULL;
+  m_pShadowMapEffect = NULL;
+  m_pMesh = NULL;
+  m_pQuad = NULL;
   InitLights();
-  InitBoxPos();
+  m_currentTimeMillis = GetCurrentTimeMillis();
 
+  Vector3f Pos(3.0f, 8.0f, -10.0f);
+  Vector3f Target(0.0f, -0.2f, 1.0f);
+  Vector3f Up(0.0, 1.0f, 0.0f);
+
+  m_pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, Pos, Target, Up);
+
+/*
   // Setup the gbuffer
   if(!m_gbuffer.Init(WINDOW_WIDTH, WINDOW_HEIGHT))
   {
     std::cout<<"GBuffer Init failed.\n";
     return false;
   }
-  
-  m_pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
 
   if(!m_DSGeomPassTech.Init())
   {
@@ -229,18 +270,97 @@ bool initilize()
     return false;
   }            
 
-  if(!m_box.LoadMesh("../Content/box.obj"))
-  {
-    printf("There was an error initiating the: box\n");
-    return false;
-  }      
-
   if(!m_bsphere.LoadMesh("../Content/sphere.obj"))
   {
     printf("There was an error initiating the: sphere\n");
     return false;
   }
 
+  m_pLightingTechnique = new BasicLightingTechnique();
+
+  if (!m_pLightingTechnique->Init())
+  {
+    printf("Error initializing the basic lighting technique\n");
+    return false;
+  }
+
+  m_pLightingTechnique->Enable();
+  m_pLightingTechnique->SetDirectionalLight(m_dirLight);
+  m_pLightingTechnique->SetColorTextureUnit(COLOR_TEXTURE_UNIT_INDEX);
+*/
+
+  m_pGround = new Mesh();
+  if (!m_pGround->LoadMesh("../Content/quad3.obj"))
+  {
+    return false;
+  }
+
+        if (!m_shadowMapFBO.Init(WINDOW_WIDTH, WINDOW_HEIGHT)) {
+            return false;
+        }
+     
+        m_pLightingEffect = new LightingTechnique();
+
+        if (!m_pLightingEffect->Init()) {
+            printf("Error initializing the lighting technique\n");
+            return false;
+        }
+
+        m_pLightingEffect->Enable();
+        m_pLightingEffect->SetSpotLights(1, &m_spotLight);
+        m_pLightingEffect->SetTextureUnit(0);
+        m_pLightingEffect->SetShadowMapTextureUnit(1);
+        
+        m_pShadowMapEffect = new ShadowMapTechnique();
+
+        if (!m_pShadowMapEffect->Init()) {
+            printf("Error initializing the shadow map technique\n");
+            return false;
+        }        
+       
+        m_pQuad = new Mesh();
+        
+    if (!m_pQuad->LoadMesh("../Content/quad.obj")) {
+            return false;
+        }
+
+        m_pMesh = new Mesh();
+
+    if(!m_pMesh->LoadMesh("../Content/phoenix_ugv.md2"))
+    {
+      printf("phoenix_ugv failed to init.\n");
+      return false;
+    }
+
+  m_pTexture = new Texture(GL_TEXTURE_2D, "../Content/bricks.jpg");
+  
+  if (!m_pTexture->Load()) {
+      return false;
+  }
+  
+  //m_pTexture->Bind(COLOR_TEXTURE_UNIT);
+
+  m_pNormalMap = new Texture(GL_TEXTURE_2D, "../Content/normal_map.jpg");
+  
+  if (!m_pNormalMap->Load()) {
+      return false;
+  }
+
+  m_billboardList = new BillboardList();
+  if (!m_billboardList->Init("../Content/grass.jpg"))
+  {
+    printf("Failed to startup billboard.\n");
+    return false;
+  }
+
+  Vector3f ParticleSystemPos = Vector3f(-0.5f, 0.0f, 1.0f);
+  m_particleSystem = new ParticleSystem(); 
+  if(!m_particleSystem->InitParticleSystem(ParticleSystemPos))
+  {
+    printf("Particle System Failed to init.\n");
+    return false;
+  }
+  
   return true;
 }
 
@@ -278,17 +398,17 @@ std::string ErrorString(GLenum error)
 
 void InitLights()
 {
-  m_spotLight.AmbientIntensity = 0.5f;
-  m_spotLight.DiffuseIntensity = 0.9f;
+  m_spotLight.AmbientIntensity = 0.1f;
+  m_spotLight.DiffuseIntensity = 0.2f;
   m_spotLight.Color = COLOR_WHITE;
   m_spotLight.Attenuation.Linear = 0.01f;
-  m_spotLight.Position  = Vector3f(-20.0, 20.0, 5.0f);
+  m_spotLight.Position  = Vector3f(-20.0, 20.0, 1.0f);
   m_spotLight.Direction = Vector3f(1.0f, -1.0f, 0.0f);
   m_spotLight.Cutoff =  20.0f;
 
-  m_dirLight.AmbientIntensity = 100.1f;
-  m_dirLight.Color = COLOR_CYAN;
-  m_dirLight.DiffuseIntensity = 10.5f;
+  m_dirLight.AmbientIntensity = 0.2f;
+  m_dirLight.Color = COLOR_WHITE;
+  m_dirLight.DiffuseIntensity = 0.8f;
   m_dirLight.Direction = Vector3f(1.0f, 0.0f, 0.0f);
 
   m_pointLight[0].DiffuseIntensity = 0.2f;
@@ -311,15 +431,6 @@ void InitLights()
   m_pointLight[2].Attenuation.Constant = 0.0f;
   m_pointLight[2].Attenuation.Linear = 0.0f;        
   m_pointLight[2].Attenuation.Exp = 0.3f;
-}
-
-void InitBoxPos()
-{
-  m_boxPositions[0] = Vector3f(0.0f, 0.0f, 5.0f);
-  m_boxPositions[1] = Vector3f(6.0f, 1.0f, 10.0f);
-  m_boxPositions[2] = Vector3f(-5.0f, -1.0f, 12.0f);
-  m_boxPositions[3] = Vector3f(4.0f, 4.0f, 15.0f);
-  m_boxPositions[4] = Vector3f(-4.0f, 2.0f, 20.0f);
 }
 
 // The calculation solves a quadratic equation (see http://en.wikipedia.org/wiki/Quadratic_equation)
@@ -363,13 +474,6 @@ void DSGeometryPass()
   p.SetPerspectiveProj(m_persProjInfo);        
   p.Rotate(0.0f, m_scale, 0.0f);
 
-  for (unsigned int i = 0 ; i < ARRAY_SIZE_IN_ELEMENTS(m_boxPositions) ; i++)
-  {
-    p.WorldPos(m_boxPositions[i]);
-    m_DSGeomPassTech.SetWVP(p.GetWVPTrans());
-    m_DSGeomPassTech.SetWorldMatrix(p.GetWorldTrans());
-    m_box.Render();            
-  }
 
   // When we get here the depth buffer is already populated and the stencil pass
   // depends on it, but it does not write to it.
@@ -464,8 +568,75 @@ void DSFinalPass()
                     0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }
 
+void ShadowMapPass()
+{
+  m_shadowMapFBO.BindForWriting();
+
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  m_pShadowMapEffect->Enable();
+
+  Pipeline p;
+  p.Scale(0.1f, 0.1f, 0.1f);
+  p.Rotate(0.0f, m_scale, 0.0f);
+  p.WorldPos(0.0f, 0.0f, 3.0f);
+  p.SetCamera(m_spotLight.Position, m_spotLight.Direction, Vector3f(0.0f, 1.0f, 0.0f));
+  p.SetPerspectiveProj(m_persProjInfo);
+  m_pShadowMapEffect->SetWVP(p.GetWVPTrans());
+  m_pMesh->Render();
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void RenderPass()
+{
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  m_pLightingEffect->Enable();
+
+  m_pLightingEffect->SetEyeWorldPos(m_pGameCamera->GetPos());
+
+  m_shadowMapFBO.BindForReading(GL_TEXTURE1);
+
+  Pipeline p;
+  p.SetPerspectiveProj(m_persProjInfo);
+
+  p.Scale(10.0f, 10.0f, 10.0f);
+  p.WorldPos(0.0f, 0.0f, 1.0f);
+  p.Rotate(90.0f, 0.0f, 0.0f);
+  p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
+  m_pLightingEffect->SetWVP(p.GetWVPTrans());
+  m_pLightingEffect->SetWorldMatrix(p.GetWorldTrans());        
+  p.SetCamera(m_spotLight.Position, m_spotLight.Direction, Vector3f(1.0f, 0.5f, 0.0f));
+  m_pLightingEffect->SetLightWVP(p.GetWVPTrans());
+  m_pTexture->Bind(COLOR_TEXTURE_UNIT);       
+  m_pNormalMap->Bind(NORMAL_TEXTURE_UNIT);
+  m_pQuad->Render();
+  //m_pGround->Render();
+
+  p.Scale(0.07f, 0.07f, 0.07f);
+  p.Rotate(0.0f, m_scale, 0.0f);
+  p.WorldPos(-5.0f, 0.0f, 3.0f);
+  p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
+  m_pLightingEffect->SetWVP(p.GetWVPTrans());
+  m_pLightingEffect->SetWorldMatrix(p.GetWorldTrans());
+  p.SetCamera(m_spotLight.Position, m_spotLight.Direction, Vector3f(0.0f, 1.0f, 0.0f));
+  m_pLightingEffect->SetLightWVP(p.GetWVPTrans());
+  m_pMesh->Render(); 
+
+  p.Scale(20.0f, 20.0f, 1.0f);
+  p.Rotate(90.0f, 0.0, 0.0f);
+  p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
+  p.SetPerspectiveProj(m_persProjInfo);
+
+  unsigned int DT = getDT();
+  m_particleSystem->Render(DT, p.GetVPTrans(), m_pGameCamera->GetPos());
+  //m_billboardList->Render(DT, p.GetVPTrans(), m_pGameCamera->GetPos());
+}
+
 void render()
-{ 
+{
+/*
   m_scale += 0.05f;
 
   m_pGameCamera->OnRender();
@@ -493,6 +664,37 @@ void render()
 
   DSFinalPass();
 
+  m_pGameCamera->OnRender();
+
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  m_pLightingTechnique->Enable();
+
+  m_pTexture->Bind(COLOR_TEXTURE_UNIT);       
+  m_pNormalMap->Bind(NORMAL_TEXTURE_UNIT);
+
+  Pipeline p;
+  p.Scale(20.0f, 20.0f, 1.0f);
+  p.Rotate(90.0f, 0.0, 0.0f);
+  p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
+  p.SetPerspectiveProj(m_persProjInfo);
+
+  m_pLightingTechnique->SetWVP(p.GetWVPTrans());
+  m_pLightingTechnique->SetWorldMatrix(p.GetWorldTrans());
+
+  m_pGround->Render();
+
+  m_particleSystem->Render(getDT(), p.GetVPTrans(), m_pGameCamera->GetPos());
+  m_billboardList->Render(p.GetVPTrans(), m_pGameCamera->GetPos());
+*/
+
+  m_pGameCamera->OnRender();
+  m_scale += 0.05f;
+  
+  ShadowMapPass();
+  RenderPass();
+
+
   auto error = glGetError();
   if ( error != GL_NO_ERROR )
   {
@@ -519,90 +721,108 @@ bool keyboard(float dt)
       {
         return false;
       }
-/*
+
       // Print Camera
       if(e.key.keysym.sym == SDLK_p)
       {
-        camera.print();
-        printf("Location: %f, %f, %f\n", m_pointLight[MOVE_INDEX].Position.x, m_pointLight[MOVE_INDEX].Position.y, m_pointLight[MOVE_INDEX].Position.z);
+        //camera.print();
+        //printf("Location: %f, %f, %f\n", m_pointLight[MOVE_INDEX].Position.x, m_pointLight[MOVE_INDEX].Position.y, m_pointLight[MOVE_INDEX].Position.z);
       }
+
 
       // move up
       if (e.key.keysym.sym == SDLK_w)
       {
-        camera.moveVerticle(1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_UP);
       }
 
       // move down
       if (e.key.keysym.sym == SDLK_s)
       {
-        camera.moveVerticle(-1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_DOWN);
       }
 
       // move left
       if (e.key.keysym.sym == SDLK_a)
       {
-        camera.moveHorizontal(-1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_LEFT);
       }
 
       // move right
       if (e.key.keysym.sym == SDLK_d)
       {
-        camera.moveHorizontal(1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_RIGHT);
       }
 
       // move forward
       if (e.key.keysym.sym == SDLK_q)
       {
-        camera.moveLateral(-1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_PAGE_UP);
       }
 
       // move backward
       if (e.key.keysym.sym == SDLK_e)
       {
-        camera.moveLateral(1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_PAGE_DOWN);
       }
 
       // focus up
       if (e.key.keysym.sym == SDLK_t)
       {
-        camera.focusVerticle(1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_P);
       }
 
       // focus down
       if (e.key.keysym.sym == SDLK_g)
       {
-        camera.focusVerticle(-1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_Q);
       }
 
       // focus left
       if (e.key.keysym.sym == SDLK_f)
       {
-        camera.focusHorizontal(-1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_R);
       }
 
       // focus right
       if (e.key.keysym.sym == SDLK_h)
       {
-        camera.focusHorizontal(1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_S);
       }
 
       // focus forward
       if (e.key.keysym.sym == SDLK_r)
       {
-        camera.focusLateral(-1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_T);
       }
 
       // focus backward
       if (e.key.keysym.sym == SDLK_y)
       {
-        camera.focusLateral(1.0);
+        m_pGameCamera->OnKeyboard(OGLDEV_KEY_U);
       }
 
       if(e.key.keysym.sym == SDLK_m)
       {
-        m_pointLight[MOVE_INDEX].Position = glm::vec3(m_pointLight[MOVE_INDEX].Position.x+2, m_pointLight[MOVE_INDEX].Position.y, m_pointLight[MOVE_INDEX].Position.z);
+        delete m_billboardList;
+        m_billboardList = new BillboardList();
+        if(billboardTex)
+        {
+          if (!m_billboardList->Init("../Content/grass_blade.jpg"))
+          {
+            return false;
+          }
+        }
+        else
+        {
+          if (!m_billboardList->Init("../Content/grass.jpg"))
+          {
+            return false;
+          }
+        }
+        billboardTex = !billboardTex;
       }
+/*
       if(e.key.keysym.sym == SDLK_n)
       {
         m_pointLight[MOVE_INDEX].Position = glm::vec3(m_pointLight[MOVE_INDEX].Position.x-2, m_pointLight[MOVE_INDEX].Position.y, m_pointLight[MOVE_INDEX].Position.z);
@@ -627,18 +847,30 @@ bool keyboard(float dt)
 
       if (e.key.keysym.sym == SDLK_MINUS)
       {
-        m_dirLight.DiffuseIntensity += 0.1f;
-        m_DSDirLightPassTech.SetDirectionalLight(m_dirLight);
+        m_spotLight.DiffuseIntensity += 0.1f;
+        m_pLightingEffect->SetSpotLights(1, &m_spotLight);
+        //m_dirLight.DiffuseIntensity += 0.1f;
+        //m_DSDirLightPassTech.SetDirectionalLight(m_dirLight);
       }
       if (e.key.keysym.sym == SDLK_EQUALS)
       {
-        m_dirLight.DiffuseIntensity -= 0.1f;
-        m_DSDirLightPassTech.SetDirectionalLight(m_dirLight);
+        m_spotLight.DiffuseIntensity -= 0.1f;
+        m_pLightingEffect->SetSpotLights(1, &m_spotLight);
+        //m_dirLight.DiffuseIntensity -= 0.1f;
+        //m_DSDirLightPassTech.SetDirectionalLight(m_dirLight);
       }
 
       if (e.key.keysym.sym == SDLK_z)
       {
-        SCALE = !SCALE;
+        Vector3f ParticleSystemPos = Vector3f(-0.5f, 0.0f, 1.0f);
+        delete m_particleSystem;
+        m_particleSystem = new ParticleSystem();
+        if(!m_particleSystem->InitParticleSystem(ParticleSystemPos))
+        {
+          printf("Particle System Failed to init.\n");
+          return false;
+        }
+  
       }
       if (e.key.keysym.sym == SDLK_o)
       {
@@ -663,7 +895,6 @@ void close()
   SDL_Quit();
 }
 
-/*
 unsigned int getDT()
 {
   long long TimeNowMillis = GetCurrentTimeMillis();
@@ -672,7 +903,6 @@ unsigned int getDT()
   m_currentTimeMillis = TimeNowMillis;
   return DeltaTimeMillis;
 }
-*/
 
 float getdt()
 {

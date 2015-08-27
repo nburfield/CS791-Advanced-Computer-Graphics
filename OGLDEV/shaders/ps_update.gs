@@ -9,10 +9,10 @@ in vec3 Position0[];
 in vec3 Velocity0[];                                                                
 in float Age0[];                                                                    
                                                                                     
-out float Type1;                                                                    
-out vec3 Position1;                                                                 
-out vec3 Velocity1;                                                                 
-out float Age1;                                                                     
+out float Type1;
+out vec3 Position1;
+out vec3 Velocity1;
+out float Age1;
                                                                                     
 uniform float gDeltaTimeMillis;                                                     
 uniform float gTime;                                                                
@@ -57,7 +57,7 @@ void main()
         EndPrimitive();                                                             
     }                                                                               
     else {                                                                          
-        float DeltaTimeSecs = gDeltaTimeMillis / 1000.0f;                           
+        float DeltaTimeSecs = gDeltaTimeMillis / 70.0f;                           
         float t1 = Age0[0] / 1000.0;                                                
         float t2 = Age / 1000.0;                                                    
         vec3 DeltaP = DeltaTimeSecs * Velocity0[0];                                 

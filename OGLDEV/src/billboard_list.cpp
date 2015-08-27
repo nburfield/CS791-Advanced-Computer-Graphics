@@ -20,14 +20,15 @@
 #include "ogldev_engine_common.h"
 #include "billboard_list.h"
 
-#define NUM_ROWS 10
-#define NUM_COLUMNS 10
+#define NUM_ROWS 100
+#define NUM_COLUMNS 100
 
 
 BillboardList::BillboardList()
 {
     m_pTexture = NULL;
     m_VB = INVALID_OGL_VALUE;
+    m_time = 0;
 }
 
 
@@ -52,7 +53,7 @@ bool BillboardList::Init(const std::string& TexFilename)
 
     CreatePositionBuffer();
     
-    if (!m_technique.Init()) {
+    if (!m_technique.Init("billboard_grass")) {
         return false;
     }
     
@@ -63,12 +64,18 @@ bool BillboardList::Init(const std::string& TexFilename)
 void BillboardList::CreatePositionBuffer()
 {    
     Vector3f Positions[NUM_ROWS * NUM_COLUMNS];
-    
-    for (unsigned int j = 0 ; j < NUM_ROWS ; j++) {
-        for (unsigned int i = 0 ; i < NUM_COLUMNS ; i++) {
-            Vector3f Pos((float)i, 0.0f, (float)j);            
+    float counter_x = -30.0;
+    float counter_y = -30.0;
+    for (unsigned int j = 0 ; j < NUM_ROWS ; j++)
+    {
+        for (unsigned int i = 0 ; i < NUM_COLUMNS ; i++)
+        {
+            Vector3f Pos(counter_x, 0.0f, counter_y);
             Positions[j * NUM_COLUMNS + i] = Pos;
+            counter_x = counter_x + 0.1;
         }
+        counter_x = 0.0f;
+        counter_y = counter_y + 0.1;
     }
 
     glGenBuffers(1, &m_VB);
@@ -77,12 +84,15 @@ void BillboardList::CreatePositionBuffer()
 }
 
 
-void BillboardList::Render(const Matrix4f& VP, const Vector3f& CameraPos)
+void BillboardList::Render(unsigned int m_delta, const Matrix4f& VP, const Vector3f& CameraPos)
 {
+    m_time += m_delta;
     m_technique.Enable();
     m_technique.SetVP(VP);
+    m_technique.SetDelta(m_delta);
+    m_technique.SetTime(m_time);
     m_technique.SetCameraPosition(CameraPos);
-    m_technique.SetBillboardSize(1.0f);
+    m_technique.SetBillboardSize(1.14f);
     
     m_pTexture->Bind(COLOR_TEXTURE_UNIT);
     

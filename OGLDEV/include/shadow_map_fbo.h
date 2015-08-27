@@ -15,36 +15,36 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef BILLBOARD_TECHNIQUE_H
-#define BILLBOARD_TECHNIQUE_H
+#ifndef SHADOWMAPFBO_H
+#define SHADOWMAPFBO_H
 
-#include "technique.h"
-#include "ogldev_math_3d.h"
+#define GL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED
 
-class BillboardTechnique : public Technique 
+#if defined(__APPLE__) || defined(MACOSX)
+  #include <OpenGL/gl3.h>
+  #include <OpenGL/GLU.h>
+#else //linux as default
+  #include <GL/glew.h>
+  #include <GL/glu.h>
+#endif
+
+class ShadowMapFBO
 {
 public:
-    
-    BillboardTechnique();
- 
-    virtual bool Init(string shader);
-    
-    void SetVP(const Matrix4f& VP);
-    void SetCameraPosition(const Vector3f& Pos);
-    void SetColorTextureUnit(unsigned int TextureUnit);
-    void SetBillboardSize(float BillboardSize);
-    void SetDelta(unsigned int dt);
-    void SetTime(int Time);
-    
-private:
+    ShadowMapFBO();
 
-    GLuint m_VPLocation;
-    GLuint m_cameraPosLocation;
-    GLuint m_colorMapLocation;
-    GLuint m_billboardSizeLocation;
-    GLuint m_DeltaTime;
-    GLuint m_Time;
+    ~ShadowMapFBO();
+
+    bool Init(unsigned int WindowWidth, unsigned int WindowHeight);
+
+    void BindForWriting();
+
+    void BindForReading(GLenum TextureUnit);
+
+private:
+    GLuint m_fbo;
+    GLuint m_shadowMap;
 };
 
-#endif  /* BILLBOARD_TECHNIQUE_H */
+#endif  /* SHADOWMAPFBO_H */
 

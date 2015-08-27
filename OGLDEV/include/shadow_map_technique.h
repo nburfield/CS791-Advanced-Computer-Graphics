@@ -13,38 +13,30 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 
-#ifndef BILLBOARD_TECHNIQUE_H
-#define BILLBOARD_TECHNIQUE_H
+#ifndef SHADOW_MAP_TECHNIQUE_H
+#define SHADOW_MAP_TECHNIQUE_H
 
 #include "technique.h"
 #include "ogldev_math_3d.h"
 
-class BillboardTechnique : public Technique 
-{
+class ShadowMapTechnique : public Technique {
+
 public:
-    
-    BillboardTechnique();
- 
-    virtual bool Init(string shader);
-    
-    void SetVP(const Matrix4f& VP);
-    void SetCameraPosition(const Vector3f& Pos);
-    void SetColorTextureUnit(unsigned int TextureUnit);
-    void SetBillboardSize(float BillboardSize);
-    void SetDelta(unsigned int dt);
-    void SetTime(int Time);
-    
+
+    ShadowMapTechnique();
+
+    virtual bool Init();
+
+    void SetWVP(const Matrix4f& WVP);
+    void SetTextureUnit(unsigned int TextureUnit);
 private:
 
-    GLuint m_VPLocation;
-    GLuint m_cameraPosLocation;
-    GLuint m_colorMapLocation;
-    GLuint m_billboardSizeLocation;
-    GLuint m_DeltaTime;
-    GLuint m_Time;
+    GLuint m_WVPLocation;
+    GLuint m_textureLocation;
 };
 
-#endif  /* BILLBOARD_TECHNIQUE_H */
+
+#endif  /* SHADOW_MAP_TECHNIQUE_H */
 

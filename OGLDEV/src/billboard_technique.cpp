@@ -26,21 +26,24 @@ BillboardTechnique::BillboardTechnique()
 }
  
 
-bool BillboardTechnique::Init()
+bool BillboardTechnique::Init(string shader)
 {
     if (!Technique::Init()) {
         return false;
     }
 
-    if (!AddShader(GL_VERTEX_SHADER, "../shaders/billboard.vs")) {
+    string s = "../shaders/" + shader + "_vertex.glsl";
+    if (!AddShader(GL_VERTEX_SHADER, s.c_str())) {
         return false;
     }
 
-    if (!AddShader(GL_GEOMETRY_SHADER, "../shaders/billboard.gs")) {
+    s = "../shaders/" + shader + "_geometry.glsl";
+    if (!AddShader(GL_GEOMETRY_SHADER, s.c_str())) {
         return false;
     }
     
-    if (!AddShader(GL_FRAGMENT_SHADER, "../shaders/billboard.fs")) {
+    s = "../shaders/" + shader + "_fragment.glsl";
+    if (!AddShader(GL_FRAGMENT_SHADER, s.c_str())) {
         return false;
     }
 
@@ -52,11 +55,15 @@ bool BillboardTechnique::Init()
     m_cameraPosLocation = GetUniformLocation("gCameraPos");
     m_colorMapLocation = GetUniformLocation("gColorMap");
     m_billboardSizeLocation = GetUniformLocation("gBillboardSize");
+    m_DeltaTime = GetUniformLocation("gDT"); 
+    m_Time = GetUniformLocation("gTime");
 
     if (m_VPLocation == INVALID_UNIFORM_LOCATION ||
         m_cameraPosLocation == INVALID_UNIFORM_LOCATION ||
         m_billboardSizeLocation == INVALID_UNIFORM_LOCATION ||
-        m_colorMapLocation == INVALID_UNIFORM_LOCATION) {
+        m_colorMapLocation == INVALID_UNIFORM_LOCATION ||
+        m_DeltaTime == INVALID_UNIFORM_LOCATION ||
+        m_Time == INVALID_UNIFORM_LOCATION) {
         return false;        
     }
     
@@ -69,6 +76,15 @@ void BillboardTechnique::SetVP(const Matrix4f& VP)
     glUniformMatrix4fv(m_VPLocation, 1, GL_TRUE, (const GLfloat*)VP.m);    
 }
 
+void BillboardTechnique::SetDelta(unsigned int dt)
+{
+    glUniform1f(m_DeltaTime, (float)dt);    
+}
+
+void BillboardTechnique::SetTime(int Time)
+{
+    glUniform1f(m_Time, (float)Time);    
+}
 
 void BillboardTechnique::SetCameraPosition(const Vector3f& Pos)
 {

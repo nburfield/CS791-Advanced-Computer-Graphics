@@ -15,6 +15,10 @@ using namespace std;
 #endif
 
 // C++ Related Includes
+#include <stdlib.h>
+#include <math.h>
+#include <assert.h>
+
 #include <chrono>
 #include <gbuffer.h>
 #include <null_technique.h>
@@ -30,9 +34,13 @@ using namespace std;
 #include "ogldev_basic_mesh.h"
 #include "gbuffer.h"
 #include "lights_common.h"
+#include "particle_system.h"
+#include "ogldev_basic_lighting.h"
+#include "mesh.h"
 
-#define WINDOW_WIDTH  1280
-#define WINDOW_HEIGHT 1024
+
+#define WINDOW_WIDTH  640
+#define WINDOW_HEIGHT 480
 
 // Render Screen Width & height
 int width = 640, height = 480;
@@ -40,7 +48,6 @@ int width = 640, height = 480;
 // OpenGL necessary functions
 bool initilize();
 void InitLights();
-void InitBoxPos();
 float CalcPointLightBSphere(const PointLight& Light);
 bool update();
 void render();
@@ -80,12 +87,17 @@ float m_scale;
 SpotLight m_spotLight;
 DirectionalLight m_dirLight;
 PointLight m_pointLight[3];
-BasicMesh m_box;
 BasicMesh m_bsphere;
 BasicMesh m_quad;
 PersProjInfo m_persProjInfo;
 GBuffer m_gbuffer;
-Vector3f m_boxPositions[5];
+
+long long m_currentTimeMillis;
+BasicLightingTechnique* m_pLightingTechnique;
+Mesh* m_pGround;    
+Texture* m_pTexture;
+Texture* m_pNormalMap;
+ParticleSystem m_particleSystem;
 
 // Main Program
 int main(int argc, char **argv)
@@ -158,7 +170,11 @@ bool initilize()
   glBindVertexArray(vao);
 
   // Init values
+  m_pLightingTechnique = NULL;
   m_pGameCamera = NULL;
+  m_pTexture = NULL;
+  m_pGround = NULL;
+  m_pNormalMap = NULL;
   m_scale = 0.0f;
   m_persProjInfo.FOV = 60.0f;
   m_persProjInfo.Height = WINDOW_HEIGHT;
@@ -166,16 +182,21 @@ bool initilize()
   m_persProjInfo.zNear = 1.0f;
   m_persProjInfo.zFar = 100.0f;  
   InitLights();
-  InitBoxPos();
+  m_currentTimeMillis = GetCurrentTimeMillis();
 
+  Vector3f Pos(0.0f, 0.4f, -0.5f);
+  Vector3f Target(0.0f, 0.2f, 1.0f);
+  Vector3f Up(0.0, 1.0f, 0.0f);
+
+  m_pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, Pos, Target, Up);
+
+/*
   // Setup the gbuffer
   if(!m_gbuffer.Init(WINDOW_WIDTH, WINDOW_HEIGHT))
   {
     std::cout<<"GBuffer Init failed.\n";
     return false;
   }
-  
-  m_pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
 
   if(!m_DSGeomPassTech.Init())
   {
@@ -229,15 +250,49 @@ bool initilize()
     return false;
   }            
 
-  if(!m_box.LoadMesh("../Content/box.obj"))
-  {
-    printf("There was an error initiating the: box\n");
-    return false;
-  }      
-
   if(!m_bsphere.LoadMesh("../Content/sphere.obj"))
   {
     printf("There was an error initiating the: sphere\n");
+    return false;
+  }
+*/
+  m_pLightingTechnique = new BasicLightingTechnique();
+
+  if (!m_pLightingTechnique->Init())
+  {
+    printf("Error initializing the basic lighting technique\n");
+    return false;
+  }
+
+  m_pLightingTechnique->Enable();
+  m_pLightingTechnique->SetDirectionalLight(m_dirLight);
+  m_pLightingTechnique->SetColorTextureUnit(COLOR_TEXTURE_UNIT_INDEX);
+
+  m_pGround = new Mesh();
+  
+  if (!m_pGround->LoadMesh("../Content/quad3.obj")) {
+      return false;
+  }
+                 
+  m_pTexture = new Texture(GL_TEXTURE_2D, "../Content/bricks.jpg");
+  
+  if (!m_pTexture->Load()) {
+      return false;
+  }
+  
+  m_pTexture->Bind(COLOR_TEXTURE_UNIT);
+
+  m_pNormalMap = new Texture(GL_TEXTURE_2D, "../Content/normal_map.jpg");
+  
+  if (!m_pNormalMap->Load()) {
+      return false;
+  }
+  
+  Vector3f ParticleSystemPos = Vector3f(0.0f, 0.0f, 1.0f);
+                  
+  if(!m_particleSystem.InitParticleSystem(ParticleSystemPos))
+  {
+    printf("Particle System Failed to init.\n");
     return false;
   }
 
@@ -278,7 +333,7 @@ std::string ErrorString(GLenum error)
 
 void InitLights()
 {
-  m_spotLight.AmbientIntensity = 0.5f;
+  m_spotLight.AmbientIntensity = 0.0f;
   m_spotLight.DiffuseIntensity = 0.9f;
   m_spotLight.Color = COLOR_WHITE;
   m_spotLight.Attenuation.Linear = 0.01f;
@@ -286,9 +341,9 @@ void InitLights()
   m_spotLight.Direction = Vector3f(1.0f, -1.0f, 0.0f);
   m_spotLight.Cutoff =  20.0f;
 
-  m_dirLight.AmbientIntensity = 100.1f;
-  m_dirLight.Color = COLOR_CYAN;
-  m_dirLight.DiffuseIntensity = 10.5f;
+  m_dirLight.AmbientIntensity = 0.2f;
+  m_dirLight.Color = COLOR_WHITE;
+  m_dirLight.DiffuseIntensity = 0.8f;
   m_dirLight.Direction = Vector3f(1.0f, 0.0f, 0.0f);
 
   m_pointLight[0].DiffuseIntensity = 0.2f;
@@ -311,15 +366,6 @@ void InitLights()
   m_pointLight[2].Attenuation.Constant = 0.0f;
   m_pointLight[2].Attenuation.Linear = 0.0f;        
   m_pointLight[2].Attenuation.Exp = 0.3f;
-}
-
-void InitBoxPos()
-{
-  m_boxPositions[0] = Vector3f(0.0f, 0.0f, 5.0f);
-  m_boxPositions[1] = Vector3f(6.0f, 1.0f, 10.0f);
-  m_boxPositions[2] = Vector3f(-5.0f, -1.0f, 12.0f);
-  m_boxPositions[3] = Vector3f(4.0f, 4.0f, 15.0f);
-  m_boxPositions[4] = Vector3f(-4.0f, 2.0f, 20.0f);
 }
 
 // The calculation solves a quadratic equation (see http://en.wikipedia.org/wiki/Quadratic_equation)
@@ -363,13 +409,6 @@ void DSGeometryPass()
   p.SetPerspectiveProj(m_persProjInfo);        
   p.Rotate(0.0f, m_scale, 0.0f);
 
-  for (unsigned int i = 0 ; i < ARRAY_SIZE_IN_ELEMENTS(m_boxPositions) ; i++)
-  {
-    p.WorldPos(m_boxPositions[i]);
-    m_DSGeomPassTech.SetWVP(p.GetWVPTrans());
-    m_DSGeomPassTech.SetWorldMatrix(p.GetWorldTrans());
-    m_box.Render();            
-  }
 
   // When we get here the depth buffer is already populated and the stencil pass
   // depends on it, but it does not write to it.
@@ -465,7 +504,8 @@ void DSFinalPass()
 }
 
 void render()
-{ 
+{
+/*
   m_scale += 0.05f;
 
   m_pGameCamera->OnRender();
@@ -492,6 +532,33 @@ void render()
   DSDirectionalLightPass();
 
   DSFinalPass();
+*/
+
+  long long TimeNowMillis = GetCurrentTimeMillis();
+  assert(TimeNowMillis >= m_currentTimeMillis);
+  unsigned int DeltaTimeMillis = (unsigned int)(TimeNowMillis - m_currentTimeMillis);
+  m_currentTimeMillis = TimeNowMillis;
+  m_pGameCamera->OnRender();
+
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  m_pLightingTechnique->Enable();
+
+  m_pTexture->Bind(COLOR_TEXTURE_UNIT);       
+  m_pNormalMap->Bind(NORMAL_TEXTURE_UNIT);
+
+  Pipeline p;
+  p.Scale(20.0f, 20.0f, 1.0f);
+  p.Rotate(90.0f, 0.0, 0.0f);
+  p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
+  p.SetPerspectiveProj(m_persProjInfo);
+
+  m_pLightingTechnique->SetWVP(p.GetWVPTrans());
+  m_pLightingTechnique->SetWorldMatrix(p.GetWorldTrans());
+
+  m_pGround->Render();
+
+  m_particleSystem.Render(DeltaTimeMillis, p.GetVPTrans(), m_pGameCamera->GetPos());
 
   auto error = glGetError();
   if ( error != GL_NO_ERROR )
@@ -662,17 +729,6 @@ void close()
   gWindow = NULL;
   SDL_Quit();
 }
-
-/*
-unsigned int getDT()
-{
-  long long TimeNowMillis = GetCurrentTimeMillis();
-  assert(TimeNowMillis >= m_currentTimeMillis);
-  unsigned int DeltaTimeMillis = (unsigned int)(TimeNowMillis - m_currentTimeMillis);
-  m_currentTimeMillis = TimeNowMillis;
-  return DeltaTimeMillis;
-}
-*/
 
 float getdt()
 {

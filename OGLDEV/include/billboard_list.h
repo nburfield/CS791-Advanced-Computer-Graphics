@@ -32,7 +32,7 @@ public:
     
     bool Init(const std::string& TexFilename);
     
-    void Render(const Matrix4f& VP, const Vector3f& CameraPos);
+    void Render(unsigned int m_delta, const Matrix4f& VP, const Vector3f& CameraPos);
 
 private:
     void CreatePositionBuffer();
@@ -40,6 +40,7 @@ private:
     GLuint m_VB;
     Texture* m_pTexture;
     BillboardTechnique m_technique;
+    int m_time;
 };
 
 

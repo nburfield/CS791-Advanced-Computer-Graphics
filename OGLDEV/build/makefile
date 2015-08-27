@@ -21,10 +21,10 @@ PATHL= -L/usr/local/lib/
 CXXFLAGS= -g -Wall -std=c++0x -DMAGICKCORE_HDRI_ENABLE=0 -DMAGICKCORE_QUANTUM_DEPTH=16
 
 # main to be compiled
-MAIN_FILE = particle
+MAIN_FILE = shadow
 
-all: clean ds_dir_light_pass_tech.o ds_geom_pass_tech.o ds_light_pass_tech.o ds_point_light_pass_tech.o gbuffer.o null_technique.o ogldev_camera.o ogldev_pipeline.o technique.o ogldev_basic_mesh.o ogldev_texture.o main.o ogldev_util.o ogldev_math_3d.o billboard_technique.o particle_system.o ps_update_technique.o random_texture.o mesh.o ogldev_basic_lighting.o billboard_list.o
-	$(CC) $(CXXFLAGS) -o ../bin/$(MAIN_FILE) ds_dir_light_pass_tech.o ds_geom_pass_tech.o ds_light_pass_tech.o ds_point_light_pass_tech.o gbuffer.o null_technique.o ogldev_camera.o ogldev_pipeline.o technique.o ogldev_basic_mesh.o ogldev_texture.o main.o ogldev_util.o ogldev_math_3d.o billboard_technique.o particle_system.o ps_update_technique.o random_texture.o mesh.o ogldev_basic_lighting.o billboard_list.o $(LIBS) $(PATHI) $(PATHL)
+all: clean ds_dir_light_pass_tech.o ds_geom_pass_tech.o ds_light_pass_tech.o ds_point_light_pass_tech.o gbuffer.o null_technique.o ogldev_camera.o ogldev_pipeline.o technique.o ogldev_basic_mesh.o ogldev_texture.o main.o ogldev_util.o ogldev_math_3d.o billboard_technique.o particle_system.o ps_update_technique.o random_texture.o mesh.o ogldev_basic_lighting.o billboard_list.o lighting_technique.o shadow_map_fbo.o shadow_map_technique.o
+	$(CC) $(CXXFLAGS) -o ../bin/$(MAIN_FILE) ds_dir_light_pass_tech.o ds_geom_pass_tech.o ds_light_pass_tech.o ds_point_light_pass_tech.o gbuffer.o null_technique.o ogldev_camera.o ogldev_pipeline.o technique.o ogldev_basic_mesh.o ogldev_texture.o main.o ogldev_util.o ogldev_math_3d.o billboard_technique.o particle_system.o ps_update_technique.o random_texture.o mesh.o ogldev_basic_lighting.o billboard_list.o lighting_technique.o shadow_map_fbo.o shadow_map_technique.o $(LIBS) $(PATHI) $(PATHL)
 
 main.o: ../src/$(MAIN_FILE).cpp
 	$(CC) $(CXXFLAGS) -c ../src/$(MAIN_FILE).cpp -o main.o $(INCLUDE) `Magick++-config --cppflags --cxxflags --ldflags --libs`
@@ -89,8 +89,17 @@ ogldev_basic_lighting.o: ../src/ogldev_basic_lighting.cpp
 billboard_list.o: ../src/billboard_list.cpp
 	$(CC) $(CXXFLAGS) -c ../src/billboard_list.cpp -o billboard_list.o $(INCLUDE) `Magick++-config --cppflags --cxxflags --ldflags --libs`
 
+lighting_technique.o: ../src/lighting_technique.cpp
+	$(CC) $(CXXFLAGS) -c ../src/lighting_technique.cpp -o lighting_technique.o $(INCLUDE) `Magick++-config --cppflags --cxxflags --ldflags --libs`
+
+shadow_map_fbo.o: ../src/shadow_map_fbo.cpp
+	$(CC) $(CXXFLAGS) -c ../src/shadow_map_fbo.cpp -o shadow_map_fbo.o $(INCLUDE) `Magick++-config --cppflags --cxxflags --ldflags --libs`
+
+shadow_map_technique.o: ../src/shadow_map_technique.cpp
+	$(CC) $(CXXFLAGS) -c ../src/shadow_map_technique.cpp -o shadow_map_technique.o $(INCLUDE) `Magick++-config --cppflags --cxxflags --ldflags --libs`
+
 clean:
-	rm main.o
+	-@if rm main.o 2>/dev/null || true; then echo "Main Removed"; else echo "No Main"; fi
 
 clean-all:
 	rm *.o ../bin/$(MAIN_FILE)

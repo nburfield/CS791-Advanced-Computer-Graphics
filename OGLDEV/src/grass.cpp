@@ -98,6 +98,8 @@ Mesh* m_pGround;
 Texture* m_pTexture;
 Texture* m_pNormalMap;
 BillboardList m_billboardList;
+ParticleSystem* m_particleSystem;
+
 
 // Main Program
 int main(int argc, char **argv)
@@ -184,8 +186,8 @@ bool initilize()
   InitLights();
   m_currentTimeMillis = GetCurrentTimeMillis();
 
-  Vector3f Pos(0.0f, 1.0f, -1.0f);
-  Vector3f Target(0.0f, -0.5f, 1.0f);
+  Vector3f Pos(0.0f, 0.4f, -0.5f);
+  Vector3f Target(0.0f, 0.2f, 1.0f);
   Vector3f Up(0.0, 1.0f, 0.0f);
 
   m_pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, Pos, Target, Up);
@@ -286,6 +288,14 @@ bool initilize()
   
   if (!m_pNormalMap->Load()) {
       return false;
+  }
+
+  Vector3f ParticleSystemPos = Vector3f(0.0f, 0.0f, 1.0f);
+  m_particleSystem = new ParticleSystem(); 
+  if(!m_particleSystem->InitParticleSystem(ParticleSystemPos))
+  {
+    printf("Particle System Failed to init.\n");
+    return false;
   }
   
   if (!m_billboardList.Init("../Content/grass_blade.jpg"))
@@ -531,6 +541,10 @@ void render()
   DSFinalPass();
 */
 
+  long long TimeNowMillis = GetCurrentTimeMillis();
+  assert(TimeNowMillis >= m_currentTimeMillis);
+  unsigned int DeltaTimeMillis = (unsigned int)(TimeNowMillis - m_currentTimeMillis);
+  m_currentTimeMillis = TimeNowMillis;
   m_pGameCamera->OnRender();
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -548,10 +562,12 @@ void render()
 
   m_pLightingTechnique->SetWVP(p.GetWVPTrans());
   m_pLightingTechnique->SetWorldMatrix(p.GetWorldTrans());
+
   m_pGround->Render();
+
+  m_particleSystem->Render(DeltaTimeMillis, p.GetVPTrans(), m_pGameCamera->GetPos());
           
   m_billboardList.Render(p.GetVPTrans(), m_pGameCamera->GetPos());
-
 
   auto error = glGetError();
   if ( error != GL_NO_ERROR )
@@ -698,7 +714,15 @@ bool keyboard(float dt)
 
       if (e.key.keysym.sym == SDLK_z)
       {
-        SCALE = !SCALE;
+        Vector3f ParticleSystemPos = Vector3f(0.0f, 0.0f, 1.0f);
+        delete m_particleSystem;
+        m_particleSystem = new ParticleSystem();
+        if(!m_particleSystem->InitParticleSystem(ParticleSystemPos))
+        {
+          printf("Particle System Failed to init.\n");
+          return false;
+        }
+  
       }
       if (e.key.keysym.sym == SDLK_o)
       {
