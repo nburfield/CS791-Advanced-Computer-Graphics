@@ -41,6 +41,7 @@ using namespace std;
 #include "lighting_technique.h"
 #include "shadow_map_technique.h"
 #include "shadow_map_fbo.h"
+#include "water_technique.h"
 
 #define WINDOW_WIDTH  840
 #define WINDOW_HEIGHT 680
@@ -114,6 +115,8 @@ Mesh* m_pMesh;
 Mesh* m_pQuad;
 ShadowMapFBO m_shadowMapFBO;
 
+WaterTechnique water;
+
 
 // Main Program
 int main(int argc, char **argv)
@@ -176,6 +179,19 @@ bool initilize()
   {
     printf("Unable to use VSync: %s\n", SDL_GetError());
   }
+
+  #if !defined(__APPLE__) && !defined(MACOSX)
+    cout << glewGetString(GLEW_VERSION) << endl;
+    glewExperimental = GL_TRUE;
+
+    auto status = glewInit();
+    //Check for error
+    if (status != GLEW_OK)
+    {
+      std::cerr << "GLEW Error: " << glewGetErrorString(status) << "\n";
+      return false;
+    }
+  #endif
 
   // Start Text Input
   SDL_StartTextInput();
@@ -358,6 +374,12 @@ bool initilize()
   if(!m_particleSystem->InitParticleSystem(ParticleSystemPos))
   {
     printf("Particle System Failed to init.\n");
+    return false;
+  }
+
+  if(!water.Init())
+  {
+    printf("Water Init failed.\n");
     return false;
   }
   
@@ -611,18 +633,23 @@ void RenderPass()
   m_pLightingEffect->SetLightWVP(p.GetWVPTrans());
   m_pTexture->Bind(COLOR_TEXTURE_UNIT);       
   m_pNormalMap->Bind(NORMAL_TEXTURE_UNIT);
-  m_pQuad->Render();
+  //m_pQuad->Render();
   //m_pGround->Render();
 
   p.Scale(0.07f, 0.07f, 0.07f);
-  p.Rotate(0.0f, m_scale, 0.0f);
+  p.Rotate(0.0f, 0.0f, 0.0f);
   p.WorldPos(-5.0f, 0.0f, 3.0f);
   p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
   m_pLightingEffect->SetWVP(p.GetWVPTrans());
+
+  water.SetModel(p.GetWVPTrans());
+
   m_pLightingEffect->SetWorldMatrix(p.GetWorldTrans());
   p.SetCamera(m_spotLight.Position, m_spotLight.Direction, Vector3f(0.0f, 1.0f, 0.0f));
   m_pLightingEffect->SetLightWVP(p.GetWVPTrans());
-  m_pMesh->Render(); 
+  //m_pMesh->Render();
+
+  water.Render(p.GetWVPTrans(), Vector3f(0.0f, 1.0f, 0.0f));
 
   p.Scale(20.0f, 20.0f, 1.0f);
   p.Rotate(90.0f, 0.0, 0.0f);

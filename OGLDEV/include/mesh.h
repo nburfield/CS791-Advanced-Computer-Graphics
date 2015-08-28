@@ -41,26 +41,6 @@
 #include "ogldev_math_3d.h"
 #include "ogldev_texture.h"
 
-struct Vertex
-{
-    Vector3f m_pos;
-    Vector2f m_tex;
-    Vector3f m_normal;
-    Vector3f m_tangent;
-
-    Vertex() {}
-
-    Vertex(const Vector3f& pos, const Vector2f& tex, const Vector3f& normal, const Vector3f& Tangent)
-    {
-        m_pos    = pos;
-        m_tex    = tex;
-        m_normal = normal;
-        m_tangent = Tangent;
-                
-    }
-};
-
-
 class Mesh
 {
 public:

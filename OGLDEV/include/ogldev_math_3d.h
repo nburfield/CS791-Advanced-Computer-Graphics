@@ -184,6 +184,25 @@ struct PersProjInfo
     float zFar;
 };
 
+struct Vertex
+{
+    Vector3f m_pos;
+    Vector2f m_tex;
+    Vector3f m_normal;
+    Vector3f m_tangent;
+
+    Vertex() {}
+
+    Vertex(const Vector3f& pos, const Vector2f& tex, const Vector3f& normal, const Vector3f& Tangent)
+    {
+        m_pos    = pos;
+        m_tex    = tex;
+        m_normal = normal;
+        m_tangent = Tangent;
+                
+    }
+};
+
 class Matrix4f
 {
 public:
@@ -221,6 +240,19 @@ public:
         m[3][0] = a30; m[3][1] = a31; m[3][2] = a32; m[3][3] = a33;        
     }
 
+/*
+    Matrix4f& operator=(const Matrix4f& other)
+    {
+        if(this != &other)
+        {
+            m[0][0] = other[0][0]; m[0][1] = other[0][1]; m[0][2] = other[0][2]; m[0][3] = other[0][3];
+            m[1][0] = other[1][0]; m[1][1] = other[1][1]; m[1][2] = other[1][2]; m[1][3] = other[1][3];
+            m[2][0] = other[2][0]; m[2][1] = other[2][1]; m[2][2] = other[2][2]; m[2][3] = other[2][3];
+            m[3][0] = other[3][0]; m[3][1] = other[3][1]; m[3][2] = other[3][2]; m[3][3] = other[3][3];  
+        }
+        return *this;
+    }
+*/
     void SetZero()
     {
         ZERO_MEM(m);

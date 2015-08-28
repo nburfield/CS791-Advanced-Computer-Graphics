@@ -8,20 +8,20 @@ uniform mat4 gVP;
 uniform vec3 gCameraPos;                                                            
 uniform float gBillboardSize;  
 uniform float gDT;
-uniform float gTime;                                                     
-                                                                                    
+uniform float gTime;
+
 out vec2 TexCoord;                                                                  
                                                                                     
 void main()                                                                         
-{            
-    float temp = gDT + gTime;                                                                       
+{                                                                                 
     vec3 Pos = gl_in[0].gl_Position.xyz;                                            
     vec3 toCamera = normalize(gCameraPos - Pos);                                    
     vec3 up = vec3(0.0, 1.0, 0.0);                                                  
-    vec3 right = cross(toCamera, up) * gBillboardSize;                              
+    vec3 right = cross(toCamera, up) * gBillboardSize;                    
                                                                                     
-    Pos -= right;                                                                   
-    gl_Position = gVP * vec4(Pos, 1.0);                                             
+    Pos -= right;
+    Pos.x = Pos.x - gDT + gTime;
+    gl_Position = gVP * vec4(Pos.x + gDT - gTime, Pos.y, Pos.z, 1.0);
     TexCoord = vec2(0.0, 0.0);                                                      
     EmitVertex();                                                                   
                                                                                     

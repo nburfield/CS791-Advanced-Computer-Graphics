@@ -64,8 +64,8 @@ bool BillboardList::Init(const std::string& TexFilename)
 void BillboardList::CreatePositionBuffer()
 {    
     Vector3f Positions[NUM_ROWS * NUM_COLUMNS];
-    float counter_x = -30.0;
-    float counter_y = -30.0;
+    float counter_x = 0.0;
+    float counter_y = 0.0;
     for (unsigned int j = 0 ; j < NUM_ROWS ; j++)
     {
         for (unsigned int i = 0 ; i < NUM_COLUMNS ; i++)

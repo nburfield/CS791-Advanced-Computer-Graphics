@@ -35,10 +35,10 @@ vec3 GetRandomDir(float TexCoord)
 void main()                                                                         
 {                                                                                   
     float Age = Age0[0] + gDeltaTimeMillis;                                         
-                                                                                    
-    if (Type0[0] == PARTICLE_TYPE_LAUNCHER) {                                       
-        if (Age >= gLauncherLifetime) {                                             
-            Type1 = PARTICLE_TYPE_SHELL;                                            
+
+    if (Type0[0] == PARTICLE_TYPE_LAUNCHER) {
+        if (Age >= gLauncherLifetime) {
+            Type1 = PARTICLE_TYPE_SHELL;
             Position1 = Position0[0];                                               
             vec3 Dir = GetRandomDir(gTime/1000.0);                                  
             Dir.y = max(Dir.y, 0.5);                                                

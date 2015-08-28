@@ -1,13 +1,10 @@
 #version 330
 
-uniform float waveTime;
-uniform float waveWidth;
-uniform float waveHeight;
- 
-void main(void)
-{
-  vec4 v = vec4(gl_Vertex);
-  v.z = sin(waveWidth * v.x + waveTime) * cos(waveWidth * v.y + waveTime) * waveHeight;
-  gl_Position = gl_ModelViewProjectionMatrix * v;
-  gl_TexCoord[0] = gl_MultiTexCoord0;
+layout (location = 0) in vec3 Position; 
+
+uniform mat4 gWVP;
+
+void main()
+{          
+    gl_Position = vec4(Position, 1.0);
 }
