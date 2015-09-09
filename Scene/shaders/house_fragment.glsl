@@ -7,6 +7,5 @@ out vec4 fragColor;
 
 void main(void)
 {
-
-   fragColor = texture(gColorMap, teture0); 
+  fragColor = texture(gColorMap, teture0);
 }

@@ -42,6 +42,7 @@ using namespace std;
 #include "shadow_map_technique.h"
 #include "shadow_map_fbo.h"
 #include "water_technique.h"
+#include <terrain.h>
 
 #define WINDOW_WIDTH  840
 #define WINDOW_HEIGHT 680
@@ -116,7 +117,7 @@ Mesh* m_pQuad;
 ShadowMapFBO m_shadowMapFBO;
 
 WaterTechnique water;
-
+Terrain terrain;
 
 // Main Program
 int main(int argc, char **argv)
@@ -382,6 +383,12 @@ bool initilize()
     printf("Water Init failed.\n");
     return false;
   }
+
+  if(!terrain.Init("../Content/heightmap.bmp"))
+  {
+    printf("Terrain Init failed.\n");
+    return false;
+  }
   
   return true;
 }
@@ -634,7 +641,7 @@ void RenderPass()
   m_pTexture->Bind(COLOR_TEXTURE_UNIT);       
   m_pNormalMap->Bind(NORMAL_TEXTURE_UNIT);
   //m_pQuad->Render();
-  //m_pGround->Render();
+  m_pGround->Render();
 
   p.Scale(0.07f, 0.07f, 0.07f);
   p.Rotate(0.0f, 0.0f, 0.0f);
@@ -647,9 +654,26 @@ void RenderPass()
   m_pLightingEffect->SetWorldMatrix(p.GetWorldTrans());
   p.SetCamera(m_spotLight.Position, m_spotLight.Direction, Vector3f(0.0f, 1.0f, 0.0f));
   m_pLightingEffect->SetLightWVP(p.GetWVPTrans());
-  //m_pMesh->Render();
+  m_pMesh->Render();
 
-  water.Render(p.GetWVPTrans(), Vector3f(0.0f, 1.0f, 0.0f));
+
+  glm::mat4 view = glm::lookAt( glm::vec3(0.0, 8.0, -16.0), //Eye Position
+                                glm::vec3(0.0, 0.0, 0.0), //Focus point
+                                glm::vec3(0.0, 1.0, 0.0)); //Positive Y is up
+  glm::mat4 projection = glm::perspective( 45.0f, //the FoV typically 90 degrees is good which is what this is set to
+                                   4.0f/3.0f, //Aspect Ratio, so Circles stay Circular
+                                   0.01f, //Distance to the near plane, normally a small value like this
+                                   100.0f); //Distance to the far plane, 
+  glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 2.0f, 0.0f));
+
+  glm::mat4 mvp = projection * view * model;
+  water.Render(mvp, Vector3f(0.0f, 1.0f, 0.0f));
+
+  terrain.Enable();
+  terrain.SetMVP(projection, view, glm::mat4(1.0f), glm::mat4(1.0f));
+  terrain.SetRender(300.0f, 35.0f, 300.0f);
+  terrain.SetLight(glm::vec3(m_dirLight.Color.x, m_dirLight.Color.y, m_dirLight.Color.z), glm::vec3(m_dirLight.Direction.x, m_dirLight.Direction.y, m_dirLight.Direction.z), m_dirLight.AmbientIntensity);
+  terrain.Render();
 
   p.Scale(20.0f, 20.0f, 1.0f);
   p.Rotate(90.0f, 0.0, 0.0f);
@@ -658,7 +682,7 @@ void RenderPass()
 
   unsigned int DT = getDT();
   m_particleSystem->Render(DT, p.GetVPTrans(), m_pGameCamera->GetPos());
-  //m_billboardList->Render(DT, p.GetVPTrans(), m_pGameCamera->GetPos());
+  m_billboardList->Render(DT, p.GetVPTrans(), m_pGameCamera->GetPos());
 }
 
 void render()

@@ -28,6 +28,13 @@
 
 #include "ogldev_util.h"
 
+// GLM for matricies
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/rotate_vector.hpp>
+
 #define ToRadian(x) (float)(((x) * M_PI / 180.0f))
 #define ToDegree(x) (float)(((x) * 180.0f / M_PI))
 
@@ -203,6 +210,27 @@ struct Vertex
     }
 };
 
+
+struct GLM_Vertex
+{
+    glm::vec3 m_pos;
+    glm::vec2 m_tex;
+    glm::vec3 m_normal;
+    glm::vec3 m_tangent;
+
+    GLM_Vertex() {}
+
+    GLM_Vertex(const glm::vec3 pos, const glm::vec2 tex, const glm::vec3 normal, const glm::vec3 Tangent)
+    {
+        m_pos    = pos;
+        m_tex    = tex;
+        m_normal = normal;
+        m_tangent = Tangent;
+                
+    }
+};
+
+
 class Matrix4f
 {
 public:
@@ -238,6 +266,15 @@ public:
         m[1][0] = a10; m[1][1] = a11; m[1][2] = a12; m[1][3] = a13;
         m[2][0] = a20; m[2][1] = a21; m[2][2] = a22; m[2][3] = a23;
         m[3][0] = a30; m[3][1] = a31; m[3][2] = a32; m[3][3] = a33;        
+    }
+
+    glm::mat4 toGLM()
+    {
+        glm::mat4 value;
+        value[0][0] = m[0][0]; value[0][1] = m[0][1]; value[0][2] = m[0][2]; value[0][3] = m[0][3];
+        value[1][0] = m[1][0]; value[1][1] = m[1][1]; value[1][2] = m[1][2]; value[1][3] = m[1][3];
+        value[2][0] = m[2][0]; value[2][1] = m[2][1]; value[2][2] = m[2][2]; value[2][3] = m[2][3];
+        value[3][0] = m[3][0]; value[3][1] = m[3][1]; value[3][2] = m[3][2]; value[3][3] = m[3][3];  
     }
 
 /*

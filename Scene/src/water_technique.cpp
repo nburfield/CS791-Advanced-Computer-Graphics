@@ -2,14 +2,13 @@
 #include <limits.h>
 #include <string.h>
 
-#include "water_technique.h"
-#include "ogldev_util.h"
+#include <water_technique.h>
 
 WaterTechnique::WaterTechnique()
 {   
 }
 
-bool WaterTechnique::Init()
+bool WaterTechnique::Initilize()
 {
     if (!Technique::Init()) {
         return false;
@@ -55,19 +54,12 @@ bool WaterTechnique::Init()
     return false;
   }
 
-  m_colorMapLocation = GetUniformLocation("gColorMap");
-  if(m_colorMapLocation == INVALID_UNIFORM_LOCATION)
-  {
-    printf("m_colorMapLocation not found\n");
-    return false;
-  }
-  
     waveTime = 0.5; waveWidth = 0.3; waveHeight = 1.0; waveFreq = 0.05;
 
     std::vector<GLM_Vertex> Vertices;
     std::vector<unsigned int> Indices;
 
-    size = 100; width = 10; height = 10;
+    width = 10; height = 10;
     increment = 1.0;
 
     
@@ -107,7 +99,7 @@ bool WaterTechnique::Init()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * Indices.size(), &Indices[0], GL_STATIC_DRAW);
 
-    texture = new Texture(GL_TEXTURE_2D, "../Content/hundred.jpg");
+    texture = new Texture(GL_TEXTURE_2D, "../Content/pirate.jpg");
   
     if (!texture->Load())
     {
@@ -117,28 +109,33 @@ bool WaterTechnique::Init()
   return true;
 }
 
-void WaterTechnique::Render(glm::mat4 mvp, const Vector3f& CameraPos)
+void WaterTechnique::Render(glm::vec3 loc, glm::mat4 view, glm::mat4 proj)
 {
     Enable();
     waveTime += waveFreq;
+    glm::mat4 mvp = proj * view * glm::translate(glm::mat4(1.0f), loc);
 
-    SetWVP(mvp);
+    glUniformMatrix4fv(m_WVPLocation, 1, GL_FALSE, glm::value_ptr(mvp));    
+    glUniform1f(loc_waveTime, waveTime);
+    glUniform1f(loc_waveWidth, waveWidth);
+    glUniform1f(loc_waveHeight, waveHeight);
+
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
 
     glBindBuffer(GL_ARRAY_BUFFER, VB);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);                 // position
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12); // texture coordinate
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20); // normal
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)32); // tangent
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLM_Vertex), 0);                 // position
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLM_Vertex), (const GLvoid*)12); // texture coordinate
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(GLM_Vertex), (const GLvoid*)20); // normal
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(GLM_Vertex), (const GLvoid*)32); // tangent
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB);
 
-    texture->Bind(COLOR_TEXTURE_UNIT);
+    texture->Bind(GL_TEXTURE0);
 
-    int value = (width/increment * height/increment) * 6;
+    int value = ((width/increment) * (height/increment)) * 6;
     glDrawElements(GL_TRIANGLES, value, GL_UNSIGNED_INT, 0);
 
     glDisableVertexAttribArray(0);
@@ -146,19 +143,5 @@ void WaterTechnique::Render(glm::mat4 mvp, const Vector3f& CameraPos)
     glDisableVertexAttribArray(2);
     glDisableVertexAttribArray(3);
 
-}
-
-
-void WaterTechnique::SetWVP(glm::mat4 WVP)
-{
-    glUniformMatrix4fv(m_WVPLocation, 1, GL_FALSE, glm::value_ptr(WVP));    
-    glUniform1f(loc_waveTime, waveTime);
-    glUniform1f(loc_waveWidth, waveWidth);
-    glUniform1f(loc_waveHeight, waveHeight);
-}
-
-void WaterTechnique::SetModel(const Matrix4f& WVP)
-{
-    model = WVP;    
 }
 

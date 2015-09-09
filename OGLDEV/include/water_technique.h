@@ -27,8 +27,8 @@ public:
 
     virtual bool Init();
 
-    void Render(const Matrix4f& VP, const Vector3f& CameraPos);
-    void SetWVP(const Matrix4f& WVP);
+    void Render(glm::mat4 mvp, const Vector3f& CameraPos);
+    void SetWVP(glm::mat4 WVP);
     void SetModel(const Matrix4f& WVP);
 
 private:
@@ -37,7 +37,14 @@ private:
     GLuint VB;
     GLuint IB;
     Texture *texture;
-    int size;
+    int size, width, height;
+    float increment;
+    float waveTime, waveWidth, waveHeight, waveFreq;
+    GLint loc_waveTime;
+    GLint loc_waveWidth;
+    GLint loc_waveHeight;
+    GLint m_colorMapLocation;
+    int mainthing;
 };
 
 
