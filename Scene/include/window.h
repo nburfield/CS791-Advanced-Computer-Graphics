@@ -11,7 +11,6 @@ class Window
     ~Window();
     bool Initilize(string name, int height, int width);
     void Swap();
-    bool Update(Camera *c);
 
   private:
     SDL_Window* gWindow;

@@ -21,8 +21,8 @@ PATHL= -L/usr/local/lib/
 CXXFLAGS= -g -Wall -std=c++0x -DMAGICKCORE_HDRI_ENABLE=0 -DMAGICKCORE_QUANTUM_DEPTH=16
 
 # .o Compilation
-#O_FILES = main.o camera.o technique.o texture.o mesh.o water_technique.o terrain_technique.o window.o
-O_FILES = main.o window.o camera.o mesh.o texture.o utility.o house.o water_technique.o technique.o
+O_FILES = main.o window.o camera.o mesh.o texture.o utility.o house.o water_technique.o technique.o terrain_technique.o
+
 # main to be compiled
 MAIN_FILE = main
 

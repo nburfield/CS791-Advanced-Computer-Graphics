@@ -13,8 +13,9 @@ uniform float waveHeight;
 void main(void)
 {
   vec4 v = vec4(v_position, 1.0);
-  v.z = cos(waveWidth * v.x + waveTime) * waveHeight;
-  //v.z = sin(waveWidth * v.x + waveTime) * cos(waveWidth * v.y + waveTime) * waveHeight;
+  v.z = cos(waveWidth * v.x + waveTime) * (waveHeight * (1-texture.x));
+  
+  //v.z = sin(waveWidth * v.x + waveTime) * cos(waveWidth * v.y + waveTime) * (waveHeight * (1-texture.x));
 
   gl_Position = mvpMatrix * v;
 

@@ -54,7 +54,7 @@ bool WaterTechnique::Initilize()
     return false;
   }
 
-    waveTime = 0.5; waveWidth = 0.3; waveHeight = 1.0; waveFreq = 0.05;
+    waveTime = 0.5; waveWidth = 5.3; waveHeight = 1.0; waveFreq = 0.05;
 
     std::vector<GLM_Vertex> Vertices;
     std::vector<unsigned int> Indices;
@@ -80,6 +80,7 @@ bool WaterTechnique::Initilize()
     {
       for(int j = 0; j < scale_width; j++)
       {
+        
         Indices.push_back((i * scale_height)+j+1);
         Indices.push_back((i * scale_height)+j);
         Indices.push_back(((1+i) * scale_height)+j+1);
@@ -87,6 +88,16 @@ bool WaterTechnique::Initilize()
         Indices.push_back(((1+i) * scale_height)+j+2);
         Indices.push_back((i * scale_height)+j+1);
         Indices.push_back(((1+i) * scale_height)+j+1);
+        
+        /*
+        Indices.push_back((i * scale_height)+j+1);
+        Indices.push_back((i * scale_height)+j);
+        Indices.push_back(((1+i) * scale_height)+j);
+
+        Indices.push_back(((1+i) * scale_height)+j);
+        Indices.push_back(((1+i) * scale_height)+j+1);
+        Indices.push_back((i * scale_height)+j+1);
+        */
       }
     }
     

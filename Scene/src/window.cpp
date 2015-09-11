@@ -62,26 +62,3 @@ void Window::Swap()
 {
   SDL_GL_SwapWindow(gWindow);
 }
-
-bool Window::Update(Camera *c)
-{
-  SDL_Event e;
-  while(SDL_PollEvent(&e) != 0)
-  {
-    if(e.type == SDL_QUIT)
-    {
-      return false;
-    }
-    else if(e.type == SDL_KEYDOWN)
-    {
-      // Escape Key
-      if(e.key.keysym.sym == SDLK_ESCAPE)
-      {
-        return false;
-      }
-    }
-  }
-
-  // Return Success
-  return true;
-}
