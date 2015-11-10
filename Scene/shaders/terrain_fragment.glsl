@@ -87,7 +87,13 @@ vec4 GetPointLightColor(PointLight pointLight, vec3 vNormal, vec3 vE)
 
 uniform PointLight sunLight;
 
-out vec4 outputColor; 
+//out vec4 outputColor;
+
+layout (location = 0) out vec3 WorldPosOut;   
+layout (location = 1) out vec3 DiffuseOut;     
+layout (location = 2) out vec3 NormalOut;     
+layout (location = 3) out vec3 TexCoordOut;    
+
 
 void main() 
 { 
@@ -97,13 +103,13 @@ void main()
 
   const float fRange1 = 0.15f; 
   const float fRange2 = 0.3f; 
-  const float fRange3 = 0.65f; 
-  const float fRange4 = 0.85f; 
+  const float fRange3 = 0.35f; 
+  const float fRange4 = 0.55f; 
 
 
   if(fScale >= 0.0 && fScale <= fRange1)
   {
-    vTexColor = texture(gSampler[0], vTexCoord); 
+    vTexColor = texture(gSampler[3], vTexCoord);
   }
   else if(fScale <= fRange2) 
   { 
@@ -113,12 +119,12 @@ void main()
     float fScale2 = fScale; 
     fScale = 1.0-fScale;  
 
-    vTexColor += texture(gSampler[0], vTexCoord)*fScale; 
-    vTexColor += texture(gSampler[1], vTexCoord)*fScale2; 
+    vTexColor += texture(gSampler[3], vTexCoord)*fScale; 
+    vTexColor += texture(gSampler[0], vTexCoord)*fScale2; 
   } 
   else if(fScale <= fRange3)
   {
-    vTexColor = texture(gSampler[1], vTexCoord); 
+    vTexColor = texture(gSampler[0], vTexCoord); 
   }
   else if(fScale <= fRange4) 
   { 
@@ -128,7 +134,7 @@ void main()
     float fScale2 = fScale; 
     fScale = 1.0-fScale;  
 
-    vTexColor += texture(gSampler[1], vTexCoord)*fScale; 
+    vTexColor += texture(gSampler[0], vTexCoord)*fScale; 
     vTexColor += texture(gSampler[2], vTexCoord)*fScale2;       
   } 
   else
@@ -138,7 +144,22 @@ void main()
 
   vec2 vPathCoord = vec2(vTexCoord.x/fMaxTextureU, vTexCoord.y/fMaxTextureV); 
   vec4 vPathIntensity = texture(gSampler[4], vPathCoord); // Black color means there is a path
-  fScale = vPathIntensity.x; 
+
+  if(vPathIntensity.x < 0.1 && vPathIntensity.y > 0.9 && vPathIntensity.z < 0.1)
+  {
+    vTexColor = texture(gSampler[1], vTexCoord);
+    fScale = vPathIntensity.y;
+  }
+  else if(vPathIntensity.x < 0.1 && vPathIntensity.y < 0.1 && vPathIntensity.z > 0.9)
+  {
+    vTexColor = texture(gSampler[2], vTexCoord);
+    fScale = vPathIntensity.z;
+  }
+  else
+  {
+    fScale = vPathIntensity.x;
+  }
+  
 
   vec4 vPathColor = texture(gSampler[3], vTexCoord);  
   vec4 vFinalTexColor = fScale * vTexColor + (1-fScale) * vPathColor; 
@@ -147,5 +168,10 @@ void main()
   vec4 vPointLightColor = GetPointLightColor(sunLight, vNormal, vEyeSpacePos.xyz); 
 
 
-  outputColor = vMixedColor * (vPointLightColor); 
-}        
+  // outputColor = vMixedColor * (vPointLightColor);
+
+  WorldPosOut     = vWorldPos;
+  DiffuseOut      = vFinalTexColor.xyz; //texture(gColorMap, TexCoord0).xyz;
+  NormalOut       = vNormalized;
+  TexCoordOut     = vec3(vTexCoord, 0.0);  
+}

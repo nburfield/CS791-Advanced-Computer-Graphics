@@ -3,7 +3,7 @@
 House::House(glm::vec3 loc)
 {
   location = loc;
-  model = glm::translate(glm::mat4(1.0f), loc);
+  model = glm::translate(glm::mat4(1.0f), loc) * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(1,0,0));
 
   Sun.AmbientIntensity = 0.02f;
   Sun.DiffuseIntensity = 0.2f;
@@ -43,6 +43,7 @@ bool House::Initilize(std::string file)
     return false;
   }
 
+  /*
   SunLight.Color = GetUniformLocation("sunLight.Base.Color");
   if(SunLight.Color == INVALID_UNIFORM_LOCATION)
   {
@@ -85,6 +86,8 @@ bool House::Initilize(std::string file)
     printf("SunLight.Atten.Exp not found.\n");
     return false;
   }
+  */
+
   ProjMatrix = GetUniformLocation("matrices.projMatrix");
   if(ProjMatrix == INVALID_UNIFORM_LOCATION)
   {
@@ -110,6 +113,7 @@ bool House::Initilize(std::string file)
     return false;
   }
 
+
   if(!object.LoadMesh(file))
   {
     return false;
@@ -120,14 +124,15 @@ bool House::Initilize(std::string file)
 
 void House::Render(glm::mat4 view, glm::mat4 proj)
 {
+  /*
   Enable();
-  SetLight();
-
+  // SetLight();
+  //model = glm::scale(glm::vec3(200.0f, 200.0f, 200.0f));
   glUniformMatrix4fv(ProjMatrix, 1, GL_FALSE, glm::value_ptr(proj));
   glUniformMatrix4fv(ViewMatrix, 1, GL_FALSE, glm::value_ptr(view));  
   glUniformMatrix4fv(ModelMatrix, 1, GL_FALSE, glm::value_ptr(model));  
   glUniformMatrix4fv(NormalMatrix, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
-
+  */
   object.Render();
 }
 
@@ -158,6 +163,6 @@ void House::Rotate(float dt)
 void House::Move(float step)
 {
   location.y += step;
-  model = glm::translate( glm::mat4(1.0f), location);
+  model = glm::translate(glm::mat4(1.0f), location) * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(1,0,0));
   printf("Location: %.2f, %.2f, %.2f\n", location.x, location.y, location.z);
 }

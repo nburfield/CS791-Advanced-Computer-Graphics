@@ -15,8 +15,9 @@ Camera::Camera()
   maxAngleY = 15;
   angularSpeedX = 2;
   angularSpeedY = 2;
-  direction = glm::vec3(-61.61, -97.77, -15.10);
-  position = glm::vec3(57.75, 98.44, -27.59);
+
+  direction = glm::vec3(-93.72, -56.40, 40.24);
+  position = glm::vec3(-38.66, 98.94, -33.20);
   //direction = glm::vec3(0, 1, 0);
   motionvector = glm::vec3(0, 0, 0);
   //position = glm::vec3(0, 10, -16);
@@ -27,11 +28,11 @@ Camera::Camera()
 
   update();
 
-  maxForwardVel = 6;
+  maxForwardVel = 20;
   minForwardVel = -6;
   maxSideVel = 10;
   minSideVel = -10;
-  maxFlightVel = 10;
+  maxFlightVel = 20;
   minFlightVel = -10;
   sideVel = flightVel = forwardVel = 0;
 }
@@ -115,6 +116,8 @@ void Camera::update()
                         up); //Positive Y is up
     
     motionvector = glm::vec3(0, 0, 0);
+    angleX = 0;
+    angleY = 0;
 }
 
 void Camera::resetHorizontalSpeed()

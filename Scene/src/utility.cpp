@@ -31,6 +31,14 @@ bool ReadFile(const char* pFileName, string& outFile)
   return ret;
 }
 
+
+float RandomFloat()
+{
+    float Max = RAND_MAX;
+    return ((float)RANDOM() / Max);
+}
+
+
 void OgldevError(const char* pFileName, uint line, const char* pError)
 {
   fprintf(stderr, "%s:%d: %s\n", pFileName, line, pError);   

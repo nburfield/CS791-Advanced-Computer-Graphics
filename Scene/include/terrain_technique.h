@@ -23,10 +23,15 @@ class Terrain : public Technique
     bool Initilize(const std::string& file);
     void Render(glm::mat4 view, glm::mat4 proj, float dt);
     bool buildTerrain(const std::string& file);
-    bool gdalTerrain(const std::string& file);
-    glm::vec3 ComputeNormal(glm::vec3 center, int i, int j, int width, int height, vector<vector<float>>& data, float Max, float xres, float yres );
-    void ComputeGeoProperties(GDALDataset *poDataset, int width, int height, double& x, double& y, double& xright, double& ybottom, double& xres, double& yres);
+    bool ToggleNight();
+    //bool gdalTerrain(const std::string& file);
+    //glm::vec3 ComputeNormal(glm::vec3 center, int i, int j, int width, int height, vector<vector<float>>& data, float Max, float xres, float yres );
+    //void ComputeGeoProperties(GDALDataset *poDataset, int width, int height, double& x, double& y, double& xright, double& ybottom, double& xres, double& yres);
 
+
+    std::vector<GLM_Vertex> Vertices;
+    std::vector<glm::vec3> GrassVertices;
+    glm::vec3 vRenderScale;
   private:
     void SetLight();
 
@@ -35,7 +40,6 @@ class Terrain : public Technique
     GLuint VB;
     GLuint IB;
     int iRows, iCols, size;
-    glm::vec3 vRenderScale;
     glm::mat4 model;
     glm::vec3 location;
     GLint RenderHeight;
@@ -51,6 +55,7 @@ class Terrain : public Technique
     GLint TextureLocations[5];
     PointLight Sun;
     float spin;
+    bool night;
 
     struct
     {

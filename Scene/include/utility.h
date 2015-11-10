@@ -61,6 +61,8 @@ void OgldevFileError(const char* pFileName, uint line, const char* pFileError);
     }                                                                           \
 }
 
+float RandomFloat();
+
 #define GLCheckError() (glGetError() == GL_NO_ERROR)
 
 #endif  /* OGLDEV_UTIL_H */

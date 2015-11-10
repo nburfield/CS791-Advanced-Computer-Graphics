@@ -5,6 +5,7 @@ Terrain::Terrain(glm::vec3 loc, glm::vec3 scale)
   location = loc;
   model = glm::translate(glm::mat4(1.0f), loc);
   vRenderScale = scale;
+  night = false;
 
   Sun.AmbientIntensity = 0.2f;
   Sun.DiffuseIntensity = 0.2f;
@@ -14,7 +15,7 @@ Terrain::Terrain(glm::vec3 loc, glm::vec3 scale)
   Sun.Attenuation.Linear = 0.0f;
   Sun.Attenuation.Exp = 0.03f;
 
-  spin = 0.0f;
+  spin = 7.216546f;
 }
 
 
@@ -35,7 +36,12 @@ bool Terrain::Initilize(const std::string& file)
   {
     return false;
   }
-
+/*
+  if (!AddShader(GL_GEOMETRY_SHADER, "../shaders/terrain_geometry.glsl"))
+  {
+    return false;
+  }
+*/
   if (!AddShader(GL_FRAGMENT_SHADER, "../shaders/terrain_fragment.glsl"))
   {
     return false;
@@ -214,7 +220,7 @@ bool Terrain::Initilize(const std::string& file)
     return false;
   }
 
-  texture[4] = new Texture(GL_TEXTURE_2D, "../Content/path.jpg");
+  texture[4] = new Texture(GL_TEXTURE_2D, "../Content/TahoeBasin_Overlay.jpg");
   if (!texture[4]->Load())
   {
     printf("Texture 4 failed\n");
@@ -250,7 +256,34 @@ void Terrain::Render(glm::mat4 view, glm::mat4 proj, float dt)
   glUniform4fv(Color, 1, glm::value_ptr(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)));
 
   // Set Light
-  spin += dt * M_PI / 2;
+  if(night)
+  {
+    if(cos(spin) > 0.0 || sin(spin) > -0.7)
+    {
+      spin += dt * M_PI / 4;
+    }
+    else
+    {
+      Sun.AmbientIntensity = 0.18f;
+      Sun.DiffuseIntensity = 0.18f;
+      Sun.Color = glm::vec3(0.6f, 0.6f, 0.6f);
+    }
+  }
+  else
+  {
+    if(cos(spin) < 0.5 || sin(spin) < 0.8)
+    {
+      spin += dt * M_PI / 4;
+    }
+    else
+    {
+      Sun.AmbientIntensity = 0.2f;
+      Sun.DiffuseIntensity = 0.2f;
+      Sun.Color = glm::vec3(1.0f, 1.0f, 1.0f);
+    }
+  }
+  
+  //spin = spin * (78/5);
   SetLight();
 
   // Texture Data
@@ -303,6 +336,12 @@ void Terrain::SetLight()
   glUniform1f(SunLight.Atten.Exp, Sun.Attenuation.Exp);
 }
 
+bool Terrain::ToggleNight()
+{
+  night = !night;
+  return night;
+}
+
 
 bool Terrain::buildTerrain(const std::string& file)
 {
@@ -315,6 +354,19 @@ bool Terrain::buildTerrain(const std::string& file)
   catch (Magick::Error& Error)
   {
     std::cout << "Error loading texture in terrain '" << file << "': " << Error.what() << std::endl;
+    return false;
+  }
+
+  Magick::Image m_image_overlay;
+  Magick::Blob m_blob_overlay;
+
+  try
+  {
+    m_image_overlay.read("../content/TahoeBasin_Overlay.jpg");
+  }
+  catch (Magick::Error& Error)
+  {
+    std::cout << "Error loading texture in terrain 'Overlay': " << Error.what() << std::endl;
     return false;
   }
 
@@ -339,7 +391,7 @@ bool Terrain::buildTerrain(const std::string& file)
 
   const void* data = m_blob.data();
 
-  //Magick::PixelPacket *pixels = m_image.getPixels(0, 0, m_image.columns(), m_image.rows());
+  Magick::PixelPacket *pixels = m_image_overlay.getPixels(0, 0, m_image_overlay.columns(), m_image_overlay.rows());
 
   for(int i = 0; i < iRows; i++) 
   { 
@@ -350,6 +402,20 @@ bool Terrain::buildTerrain(const std::string& file)
       
       float fVertexHeight = float(*(static_cast<int const *>(data) + row_step * i + j * ptr_inc))/65535.0f; 
       //printf("The Height: %.5f\n", -fVertexHeight/255.0f);
+      Magick::Color color = *pixels++;
+      Magick::ColorRGB rgb(color);
+
+      //printf("Color1(rgb): %u, %u, %u\n", rgb.red(), rgb.green(), rgb.blue());
+      //printf("Color2(rgb): %u, %u, %u\n", color.redQuantum(), color.greenQuantum(), color.blueQuantum());
+
+      if(float(color.redQuantum()) < 300 && float(color.greenQuantum()) > 60000 && float(color.blueQuantum()) < 300)
+      {
+        GrassVertices.push_back(glm::vec3(-0.5f+fScaleC, 1-(-fVertexHeight/255.0f), -0.5f+fScaleR));
+        //fVertexHeight = -70.0;
+        //std::cout << fVertexHeight << std::endl;
+        //std::cout << float(color.redQuantum()) << ", " << float(color.greenQuantum()) << ", " << float(color.blueQuantum()) << std::endl;
+      }
+      
 
       vVertexData[i][j] = glm::vec3(-0.5f+fScaleC, 1-(-fVertexHeight/255.0f), -0.5f+fScaleR); 
       vCoordsData[i][j] = glm::vec2(fTextureU*fScaleC, fTextureV*fScaleR); 
@@ -423,13 +489,13 @@ bool Terrain::buildTerrain(const std::string& file)
   }
 
   // Build the buffer
-  std::vector<GLM_Vertex> Vertices;
   std::vector<unsigned int> Indices;
 
   for(int i = 0; i < iRows; i++) 
   { 
     for(int j = 0; j < iCols; j++) 
     { 
+      //printf("Vertex Data: %.2f, %.2f, %.2f\n", vVertexData[i][j].x , vVertexData[i][j].y , vVertexData[i][j].z);
       Vertices.push_back(GLM_Vertex(glm::vec3(vVertexData[i][j].x , vVertexData[i][j].y , vVertexData[i][j].z ), 
                           vCoordsData[i][j], 
                           vFinalNormals[i][j], 
@@ -437,7 +503,7 @@ bool Terrain::buildTerrain(const std::string& file)
     } 
   }
 
-  int iPrimitiveRestartIndex = iRows * iCols; 
+  // int iPrimitiveRestartIndex = iRows * iCols; 
 
   printf("iRows: %i, iCols: %i\n", iRows, iCols);
   for(int i = 0; i < iRows-1; i++) 
@@ -487,6 +553,7 @@ bool Terrain::buildTerrain(const std::string& file)
   return true;
 }
 
+/*
 bool Terrain::gdalTerrain(const std::string& file)
 {
   // 
@@ -848,3 +915,5 @@ void Terrain::ComputeGeoProperties(GDALDataset *poDataset, int width, int height
   yres = absoluteH / (height);
 
 };
+
+*/

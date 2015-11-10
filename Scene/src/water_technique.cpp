@@ -59,8 +59,8 @@ bool WaterTechnique::Initilize()
     std::vector<GLM_Vertex> Vertices;
     std::vector<unsigned int> Indices;
 
-    width = 10; height = 10;
-    increment = 1.0;
+    width = 1500; height = 1500;
+    increment = 10.0;
 
     
     for(float i = 0.0; i <= width; i+= increment)
@@ -110,7 +110,7 @@ bool WaterTechnique::Initilize()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * Indices.size(), &Indices[0], GL_STATIC_DRAW);
 
-    texture = new Texture(GL_TEXTURE_2D, "../Content/pirate.jpg");
+    texture = new Texture(GL_TEXTURE_2D, "../Content/water.jpg");
   
     if (!texture->Load())
     {
@@ -124,7 +124,9 @@ void WaterTechnique::Render(glm::vec3 loc, glm::mat4 view, glm::mat4 proj)
 {
     Enable();
     waveTime += waveFreq;
-    glm::mat4 mvp = proj * view * glm::translate(glm::mat4(1.0f), loc);
+
+    glm::mat4 mvp = proj * view * glm::translate(glm::mat4(1.0f), loc) 
+                    * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(1,0,0));
 
     glUniformMatrix4fv(m_WVPLocation, 1, GL_FALSE, glm::value_ptr(mvp));    
     glUniform1f(loc_waveTime, waveTime);

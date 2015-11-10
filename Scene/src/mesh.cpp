@@ -63,14 +63,15 @@ bool Mesh::LoadMesh(const std::string& Filename)
 {
     // Release the previously loaded mesh (if it exists)
     Clear();
-    
+
     bool Ret = false;
     Assimp::Importer Importer;
 
     const aiScene* pScene = Importer.ReadFile(Filename.c_str(), aiProcess_Triangulate |
                                                                 aiProcess_GenSmoothNormals |
                                                                 aiProcess_FlipUVs |
-                                                                aiProcess_CalcTangentSpace);    
+                                                                aiProcess_CalcTangentSpace);
+
     if (pScene) {
         Ret = InitFromScene(pScene, Filename);
     }
@@ -108,7 +109,7 @@ void Mesh::InitMesh(unsigned int Index, const aiMesh* paiMesh)
         const aiVector3D* pPos      = &(paiMesh->mVertices[i]);
         const aiVector3D* pNormal   = &(paiMesh->mNormals[i]);
         const aiVector3D* pTexCoord = paiMesh->HasTextureCoords(0) ? &(paiMesh->mTextureCoords[0][i]) : &Zero3D;
-        const aiVector3D* pTangent  = &(paiMesh->mTangents[i]);
+        const aiVector3D* pTangent  = paiMesh->HasTangentsAndBitangents() ? &(paiMesh->mTangents[i]) : &Zero3D;
 
         GLM_Vertex v(glm::vec3(pPos->x, pPos->y, pPos->z),
                  glm::vec2(pTexCoord->x, pTexCoord->y),
@@ -125,7 +126,7 @@ void Mesh::InitMesh(unsigned int Index, const aiMesh* paiMesh)
         Indices.push_back(Face.mIndices[1]);
         Indices.push_back(Face.mIndices[2]);
     }
-    
+
     m_Entries[Index].Init(Vertices, Indices);
 }
 
@@ -195,7 +196,7 @@ void Mesh::Render()
         const unsigned int MaterialIndex = m_Entries[i].MaterialIndex;
 
         if (MaterialIndex < m_Textures.size() && m_Textures[MaterialIndex]) {
-            m_Textures[MaterialIndex]->Bind(GL_TEXTURE0);
+            m_Textures[MaterialIndex]->Bind(GL_TEXTURE5);
         }
 
         glDrawElements(GL_TRIANGLES, m_Entries[i].NumIndices, GL_UNSIGNED_INT, 0);

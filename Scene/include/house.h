@@ -15,9 +15,9 @@ class House : public Technique
     void Move(float step);
     void SetLight();
 
+    glm::mat4 model;
   private:
     Mesh object;
-    glm::mat4 model;
     glm::vec3 location;
     float spin;
 

@@ -7,7 +7,19 @@
 #include <house.h>
 #include <water_technique.h>
 #include <terrain_technique.h>
+#include <flag_technique.h>
+#include <triangle.h>
+#include <particle.h>
+#include <billboard_list.h>
+#include <lights_common.h>
+#include <gbuffer.h>
+#include <ds_geom_pass_tech.h>
+#include <ds_dir_light_pass_tech.h>
+#include <ds_point_light_pass_tech.h>
+#include <null_technique.h>
+#include <skybox.h>
 using namespace chrono;
+
 
 // Window
 #define WINDOW_WIDTH  800
@@ -15,7 +27,7 @@ using namespace chrono;
 
 
 // Functions
-bool Initilize();
+bool Initilize(char *filename);
 void Update();
 void Render();
 void close();
@@ -25,12 +37,42 @@ float getdt();
 long long GetCurrentTimeMillis();
 std::string ErrorString(GLenum error);
 
+
+// Used for object placement
+float x = -107.94, y = 88.73, z = 2.76;
+int selectMoveItem = 0;
+
+
 // Global Variables
 Window *window;
 Camera *camera;
 House *house;
 WaterTechnique *water;
+FlagTechnique *flag;
 Terrain *terrain;
+Triangle *triangle;
+ParticleSystem *fireworks;
+BillboardList *grass;
+SkyBox* skyBox;
+
+// Deferred Shading & Lights
+GBuffer gbuffer;
+DSGeomPassTech GeomPass;
+DSDirLightPassTech DirLightPass;
+DSPointLightPassTech PointLightPass;
+NullTechnique NullTech;
+PointLight pointLight[3];
+Mesh sphere;
+DirectionalLight DirLight;
+
+// Functions Related to DS
+void InitLights();
+void GeometryPass();
+void DirectionalLightPass();
+void FinalPass();
+float CalcPointLightBSphere(const PointLight& Light);
+void DSStencilPass(unsigned int PointLightIndex);
+void DSPointLightPass(unsigned int PointLightIndex);
 
 //Time function
 float getdt();
@@ -38,11 +80,12 @@ std::chrono::time_point<std::chrono::high_resolution_clock> t1,t2;
 long long m_currentTimeMillis;
 high_resolution_clock::time_point current;
 
+
 // Main
-int main()
+int main(int argc, char **argv)
 {
   // Init the screen
-  if(!Initilize())
+  if(!Initilize(argv[1]))
   {
     printf("Failed to startup\n");
     return 1;
@@ -52,6 +95,7 @@ int main()
   high_resolution_clock::time_point past = high_resolution_clock::now();
 
   SDL_Event e;
+  SDL_SetRelativeMouseMode(SDL_TRUE);
   bool run = true;
   // Startup
   while(run)
@@ -75,7 +119,7 @@ int main()
   return 0;
 }
 
-bool Initilize()
+bool Initilize(char *filename)
 {
   // Init Window
   window = new Window();
@@ -116,8 +160,8 @@ bool Initilize()
   }
 
   // Load the House
-  house = new House(glm::vec3(38.22, 73.09, -30.20));
-  if(!house->Initilize("../content/house.3ds"))
+  house = new House(glm::vec3(-107.76, 57.87, 4.54));
+  if(!house->Initilize("../content/House/3ds_file.3DS"))
   {
     printf("The House did not load.\n");
     return false;
@@ -131,36 +175,331 @@ bool Initilize()
     return false;
   }
 
+  // Load the flag
+  flag = new FlagTechnique();
+  if(!flag->Initilize())
+  {
+    printf("The Flag did not load.\n");
+    return false;
+  }
+
+  // Load the Water
+  triangle = new Triangle();
+  if(!triangle->Initilize())
+  {
+    printf("The Triangle did not load.\n");
+    return false;
+  }
+
+  // Skybox
+  skyBox = new SkyBox();
+  if (!skyBox->Init("../content/", "bluesky_right.jpg", "bluesky_left.jpg", "bluesky_top.jpg", 
+                       "bluesky_top.jpg", "bluesky_front.jpg", "bluesky_back.jpg")) 
+  {
+    printf("Skybox Failed to init.\n");
+    return false;
+  }
+
   // Load the terrain
-  terrain = new Terrain(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(500.0f, 100.0f, 500.0f));
-  if(!terrain->Initilize("../content/output.jpg")) //heightmap.bmp, island-height.jpg
+  terrain = new Terrain(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1000.0f, 200.0f, 1000.0f));
+  if(!terrain->Initilize(filename)) //heightmap.bmp, island-height.jpg
   {
     printf("The Terrain did not load.\n");
     return false;
   }
 
+  grass = new BillboardList();
+  if (!grass->Initilize("../content/grass.jpg", terrain->GrassVertices, terrain->vRenderScale))
+  {
+    printf("Failed to startup billboard.\n");
+    return false;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  // Init the lights
+  InitLights();
+
+  // Setup the gbuffer
+  if(!gbuffer.Init(WINDOW_WIDTH, WINDOW_HEIGHT))
+  {
+    std::cout<<"GBuffer Init failed.\n";
+    return false;
+  }
+  
+  if(!GeomPass.Init())
+  {
+    std::cout<<"GPass Init failed.\n";
+    return false;
+  }
+
+  GeomPass.Enable();
+  GeomPass.SetColorTextureUnit(5);
+  
+  if (!PointLightPass.Init()) 
+  {
+    printf("Error initializing DSPointLightPassTech\n");
+    return false;
+  }
+
+  PointLightPass.Enable();
+  PointLightPass.SetPositionTextureUnit(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION);
+  PointLightPass.SetColorTextureUnit(GBuffer::GBUFFER_TEXTURE_TYPE_DIFFUSE);
+  PointLightPass.SetNormalTextureUnit(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL);
+  PointLightPass.SetScreenSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+
+  if(!NullTech.Init())
+  {
+    printf("Null Tech Failed\n");
+    return false;
+  }
+
+
+  if (!DirLightPass.Init())
+  {
+    printf("Error initializing DSDirLightPassTech\n");
+    return false;
+  }
+
+  DirLightPass.Enable();
+  DirLightPass.SetPositionTextureUnit(GBuffer::GBUFFER_TEXTURE_TYPE_POSITION);
+  DirLightPass.SetColorTextureUnit(GBuffer::GBUFFER_TEXTURE_TYPE_DIFFUSE);
+  DirLightPass.SetNormalTextureUnit(GBuffer::GBUFFER_TEXTURE_TYPE_NORMAL);
+  DirLightPass.SetScreenSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+
+  if(!sphere.LoadMesh("../content/sphere.obj"))
+  {
+    printf("Failed to load the sphere.\n");
+    return false;
+  }
+
+  //////////////////////////////////////////////////////////////////////////////////////////
+
   // Return Success
   return true;
 }
 
+void InitLights()
+{
+  /*
+  SpotLight.AmbientIntensity = 00.5f;
+  SpotLight.DiffuseIntensity = 0000.9f;
+  SpotLight.Color = COLOR_WHITE;
+  SpotLight.Attenuation.Linear = 0.01f;
+  SpotLight.Position  = Vector3f(-20.0, 20.0, 5.0f);
+  SpotLight.Direction = Vector3f(1.0f, -1.0f, 0.0f);
+  SpotLight.Cutoff =  20.0f;
+  */
+
+  DirLight.AmbientIntensity = 0.1f;
+  DirLight.Color = COLOR_WHITE;
+  DirLight.DiffuseIntensity = 0.5f;
+  DirLight.Direction = glm::vec3(1.0f, 0.0f, 0.0f);
+
+  pointLight[0].DiffuseIntensity = 1.6f;
+  pointLight[0].Color = COLOR_BLUE;
+  pointLight[0].Position = glm::vec3(-89.64f, 70.53f, -7.12f);
+  pointLight[0].Attenuation.Constant = 0.0f;
+  pointLight[0].Attenuation.Linear = 0.0f;
+  pointLight[0].Attenuation.Exp = 0.3f;
+
+  pointLight[1].DiffuseIntensity = 0.2f;
+  pointLight[1].Color = COLOR_BLUE;
+  pointLight[1].Position = glm::vec3(-98.62, 71.01, 25.68);
+  pointLight[1].Attenuation.Constant = 0.0f;
+  pointLight[1].Attenuation.Linear = 0.0f;
+  pointLight[1].Attenuation.Exp = 0.3f;
+
+  pointLight[2].DiffuseIntensity = 0.2f;
+  pointLight[2].Color = COLOR_BLUE;
+  pointLight[2].Position = glm::vec3(0.0f, 0.0f, 3.0f);
+  pointLight[2].Attenuation.Constant = 0.0f;
+  pointLight[2].Attenuation.Linear = 0.0f;        
+  pointLight[2].Attenuation.Exp = 0.3f;
+}
 
 void Update()
 {
   camera->update();
 }
 
-
-void Render()
+float CalcPointLightBSphere(const PointLight& Light)
 {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glClearColor( 0.f, 0.f, 0.5f, 0.f );
-  float dt = getdt();
+  float MaxChannel = fmax(fmax(Light.Color.x, Light.Color.y), Light.Color.z);
+  
+  float ret = (-Light.Attenuation.Linear + sqrtf(Light.Attenuation.Linear * Light.Attenuation.Linear - 4 
+               * Light.Attenuation.Exp * (Light.Attenuation.Exp - 256 * MaxChannel 
+               * Light.DiffuseIntensity))) / 2 * Light.Attenuation.Exp;
+  
+  return ret;
+}  
 
-  water->Render(glm::vec3(58.22, 73.09, -30.20), camera->GetView(), camera->GetProjection());
-  // house->Rotate(dt);
+void GeometryPass()
+{
+  GeomPass.Enable();
+
+  gbuffer.BindForGeomPass();
+
+  // Only the geometry pass updates the depth buffer
+  glDepthMask(GL_TRUE);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glEnable(GL_DEPTH_TEST);
+
+  // Render Stuff
+  GeomPass.SetWVP( camera->GetProjection() * camera->GetView() * house->model);
+  GeomPass.SetWorldMatrix(camera->GetView());
   house->Render(camera->GetView(), camera->GetProjection());
 
-  terrain->Render(camera->GetView(), camera->GetProjection(), dt);
+  // When we get here the depth buffer is already populated and the stencil pass
+  // depends on it, but it does not write to it.
+  glDepthMask(GL_FALSE);    
+}
+
+void DSStencilPass(unsigned int PointLightIndex)
+{
+  NullTech.Enable();
+
+  // Disable color/depth write and enable stencil
+  gbuffer.BindForStencilPass();
+  glEnable(GL_DEPTH_TEST);
+
+  glDisable(GL_CULL_FACE);
+
+  glClear(GL_STENCIL_BUFFER_BIT);
+
+  // We need the stencil test to be enabled but we want it
+  // to succeed always. Only the depth test matters.
+  glStencilFunc(GL_ALWAYS, 0, 0);
+
+  glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
+  glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
+
+  // Set the lights, and the positions
+  float BBoxScale = CalcPointLightBSphere(pointLight[PointLightIndex]);        
+            
+  NullTech.SetWVP(camera->GetProjection() * camera->GetView() * 
+                        glm::translate(glm::mat4(1.0f), pointLight[PointLightIndex].Position) * 
+                        glm::scale(glm::mat4(1.0f), glm::vec3(BBoxScale, BBoxScale, BBoxScale)));
+
+
+  sphere.Render();  
+}
+
+    
+void DSPointLightPass(unsigned int PointLightIndex)
+{
+  gbuffer.BindForLightPass();
+
+  PointLightPass.Enable();
+  
+  PointLightPass.SetEyeWorldPos(camera->getPos());        
+
+  glStencilFunc(GL_NOTEQUAL, 0, 0xFF);
+  
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendEquation(GL_FUNC_ADD);
+  glBlendFunc(GL_ONE, GL_ONE);
+
+  //glEnable(GL_CULL_FACE);
+  //glCullFace(GL_FRONT);
+  
+  // Set the lights, and the positions
+  float BBoxScale = CalcPointLightBSphere(pointLight[PointLightIndex]);        
+            
+  PointLightPass.SetWVP(camera->GetProjection() * camera->GetView() * 
+                        glm::translate(glm::mat4(1.0f), pointLight[PointLightIndex].Position) * 
+                        glm::scale(glm::mat4(1.0f), glm::vec3(BBoxScale, BBoxScale, BBoxScale)));
+
+  PointLightPass.SetPointLight(pointLight[PointLightIndex]);
+  sphere.Render(); 
+  
+  // Set back the GL
+  //glDisable(GL_CULL_FACE);
+  //glCullFace(GL_BACK);
+  glDisable(GL_BLEND);
+}
+
+
+void DirectionalLightPass()
+{
+  gbuffer.BindForLightPass();
+
+  DirLightPass.Enable();
+  DirLightPass.SetDirectionalLight(DirLight);
+  DirLightPass.SetEyeWorldPos(camera->getPos());
+
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendEquation(GL_FUNC_ADD);
+  glBlendFunc(GL_ONE, GL_ONE);
+            
+  float BBoxScale = CalcPointLightBSphere(pointLight[0]); 
+  DirLightPass.SetWVP(camera->GetProjection() * camera->GetView() * 
+                      glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f, 1000.0f, 1000.0f)));
+
+
+  DirLightPass.SetWVP(camera->GetProjection() * camera->GetView() * 
+                      glm::translate(glm::mat4(1.0f), glm::vec3(-89.64f, 70.53f, -7.12f)) * 
+                      glm::scale(glm::mat4(1.0f), glm::vec3(10000.0f, 10000.0f, 10000.0f)));
+  
+  sphere.Render();
+
+  glDisable(GL_BLEND);
+}
+
+
+void FinalPass()
+{
+  gbuffer.BindForFinalPass();
+  glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 
+                    0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+}
+
+void Render()
+{  
+  gbuffer.StartFrame();
+  GeometryPass();
+
+  // float dt = getdt();
+  // terrain->Render(camera->GetView(), camera->GetProjection(), dt);
+
+  // We need stencil to be enabled in the stencil pass to get the stencil buffer
+  // updated and we also need it in the light pass because we render the light
+  // only if the stencil passes.
+  glEnable(GL_STENCIL_TEST);
+
+  for (unsigned int i = 0 ; i < 3; i++)
+  {
+    DSStencilPass(i);
+    DSPointLightPass(i);
+  }
+
+  // The directional light does not need a stencil test because its volume
+  // is unlimited and the final pass simply copies the texture.
+  glDisable(GL_STENCIL_TEST);
+
+  DirectionalLightPass();
+
+  //float dt = getdt();
+  //terrain->Render(camera->GetView(), camera->GetProjection(), dt);
+
+  flag->Render(glm::vec3(-107.74, 86.13, -5.04), camera->GetView(), camera->GetProjection());
+  water->Render(glm::vec3(275.72, 35.04, 660.75), camera->GetView(), camera->GetProjection());
+  triangle->Render(glm::vec3(0, 0, 0), camera->GetView(), camera->GetProjection());
+
+  unsigned int DT = getDT();
+  if(fireworks != NULL)
+  {
+    fireworks->Render(DT, camera->getPos() + camera->getFocus(), camera->GetProjection() * camera->GetView());    
+  }
+  grass->Render(DT, camera->getPos() + camera->getFocus(), camera->GetProjection() * camera->GetView());
+
+  skyBox->Render(camera->GetProjection(), camera->GetView(), 
+                    glm::translate(glm::mat4(1.0f), camera->getPos()));
+
+
+  FinalPass();
 
   // Get the Error
   auto error = glGetError();
@@ -270,24 +609,24 @@ bool Keyboard(SDL_Event e, float dt)
     // Move left
     if (e.key.keysym.sym == SDLK_a)
     {
-      camera->strafe(1 * dt);
+      camera->strafe(0.1 * dt);
     }
     // move back
     if (e.key.keysym.sym == SDLK_s)
     {
-      camera->translate(-5 * dt);
+      camera->translate(-0.1 * dt);
     }
 
     // move right
     if (e.key.keysym.sym == SDLK_d)
     {
-      camera->strafe(-1 * dt);
+      camera->strafe(-0.1 * dt);
     }
 
     // move forward
     if (e.key.keysym.sym == SDLK_w)
     {
-      camera->translate(1 * dt);
+      camera->translate(0.1 * dt);
     }
 
     if (e.key.keysym.sym == SDLK_z)
@@ -308,8 +647,11 @@ bool Keyboard(SDL_Event e, float dt)
     }
     if(e.key.keysym.sym == SDLK_p)
     {
-      printf("The Camera Position: (%.2f, %.2f, %.2f)\n", camera->getPos().x, camera->getPos().y, camera->getPos().z);
-      printf("The Camera Focus: (%.2f, %.2f, %.2f)\n", camera->getFocus().x, camera->getFocus().y, camera->getFocus().z);
+      printf("The Camera Position: (%.2f, %.2f, %.2f)\n", 
+              camera->getPos().x, camera->getPos().y, camera->getPos().z);
+      printf("The Camera Focus: (%.2f, %.2f, %.2f)\n", 
+              camera->getFocus().x, camera->getFocus().y, camera->getFocus().z);
+      printf("The placement data: (%.2f, %.2f, %.2f)\n", x, y, z);
     }
     if (e.key.keysym.sym == SDLK_y)
     {
@@ -318,6 +660,88 @@ bool Keyboard(SDL_Event e, float dt)
     if (e.key.keysym.sym == SDLK_u)
     {
       house->Move(-1.0);
+    }
+    if (e.key.keysym.sym == SDLK_n)
+    {
+      if(terrain->ToggleNight())
+      {
+        DirLight.Color = COLOR_CYAN;
+        DirLight.AmbientIntensity = 0.1f;
+        DirLight.DiffuseIntensity = 0.9f;
+
+        // Skybox
+        delete skyBox;
+        skyBox = new SkyBox();
+        if (!skyBox->Init("../content/", "lostatseanight_right.jpg", "lostatseanight_left.jpg", "lostatseanight_top.jpg", 
+                          "lostatseanight_top.jpg", "lostatseanight_front.jpg", "lostatseanight_back.jpg")) 
+        {
+          printf("Skybox Failed to init.\n");
+          return false;
+        }
+
+        fireworks = new ParticleSystem(); 
+        if(!fireworks->InitParticleSystem(glm::vec3(38.22, 73.09, -25.20)))
+        {
+          printf("Particle System Failed to init.\n");
+          return false;
+        }
+      }
+      else
+      {
+        DirLight.AmbientIntensity = 0.1f;
+        DirLight.Color = COLOR_WHITE;
+        DirLight.DiffuseIntensity = 0.5f;
+
+        // Skybox
+        delete fireworks;
+        delete skyBox;
+        skyBox = new SkyBox();
+        if (!skyBox->Init("../content/", "bluesky_right.jpg", "bluesky_left.jpg", "bluesky_top.jpg", 
+                             "bluesky_top.jpg", "bluesky_front.jpg", "bluesky_back.jpg")) 
+        {
+          printf("Skybox Failed to init.\n");
+          return false;
+        }
+      }
+
+    }
+    if (e.key.keysym.sym == SDLK_t)
+    {
+      selectMoveItem++;
+      if(selectMoveItem > 2)
+      {
+        selectMoveItem = 0;
+      }
+    }
+    if (e.key.keysym.sym == SDLK_i)
+    {
+      if(selectMoveItem == 0)
+      {
+        x -= 0.1;
+      }
+      else if(selectMoveItem == 1)
+      {
+        y -= 0.1;
+      }
+      else
+      {
+        z -= 0.1;
+      }
+    }
+    if (e.key.keysym.sym == SDLK_o)
+    {
+      if(selectMoveItem == 0)
+      {
+        x += 0.1;
+      }
+      else if(selectMoveItem == 1)
+      {
+        y += 0.1;
+      }
+      else
+      {
+        z += 0.1;
+      }
     }
   }
   else if (e.type == SDL_KEYUP)
@@ -348,6 +772,16 @@ bool Keyboard(SDL_Event e, float dt)
       camera->resetFlightSpeed();
     }
   
+  }
+  if(e.type == SDL_MOUSEMOTION)
+  {
+    camera->rotateX(-e.motion.xrel * 0.1f * dt);
+    camera->rotateY(-e.motion.yrel * 0.1f * dt);
+  }
+  else
+  {
+    // camera->resetHorizontalRotation();
+    // camera->resetVerticalRotation();
   }
 
   // Return Success
