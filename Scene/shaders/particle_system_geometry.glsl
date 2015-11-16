@@ -8,11 +8,13 @@ in float Type0[];
 in vec3 Position0[];
 in vec3 Velocity0[];
 in float Age0[];
+in vec3 Color0[];
 
 out float Type1;
 out vec3 Position1;
 out vec3 Velocity1;
 out float Age1;
+out vec3 Color1;
 
 uniform float gDeltaTimeMillis;
 uniform float gTime;
@@ -20,6 +22,7 @@ uniform sampler1D gRandomTexture;
 uniform float gLauncherLifetime;
 uniform float gShellLifetime;
 uniform float gSecondaryShellLifetime;
+uniform vec3 newColor;
 
 #define PARTICLE_TYPE_LAUNCHER 0.0f
 #define PARTICLE_TYPE_SHELL 1.0f
@@ -46,6 +49,7 @@ void main()
       Dir.y = max(Dir.y, 0.5);
       Velocity1 = normalize(Dir) / 20.0;
       Age1 = 0.0;
+      Color1 = newColor;
       EmitVertex();
       EndPrimitive();
       Age = 0.0;
@@ -53,8 +57,9 @@ void main()
 
     Type1 = PARTICLE_TYPE_LAUNCHER;                                             
     Position1 = Position0[0];                                                   
-    Velocity1 = Velocity0[0];                                                   
-    Age1 = Age;                                                                 
+    Velocity1 = Velocity0[0];
+    Age1 = Age;
+    Color1 = Color0[0];
     EmitVertex();                                                               
     EndPrimitive();                                                             
   }
@@ -72,9 +77,10 @@ void main()
       if (Age < gShellLifetime)
       {
         Type1 = PARTICLE_TYPE_SHELL;                                        
-        Position1 = Position0[0] + DeltaP;                                  
+        Position1 = Position0[0] + DeltaP;
         Velocity1 = Velocity0[0] + DeltaV;                                  
-        Age1 = Age;                                                         
+        Age1 = Age;
+        Color1 = Color0[0];
         EmitVertex();                                                       
         EndPrimitive();                                                     
       }
@@ -83,10 +89,11 @@ void main()
         for (int i = 0 ; i < 10 ; i++)
         {                                    
           Type1 = PARTICLE_TYPE_SECONDARY_SHELL;
-          Position1 = Position0[0];                                      
+          Position1 = Position0[0];
           vec3 Dir = GetRandomDir((gTime + i)/1000.0);                   
           Velocity1 = normalize(Dir) / 20.0;                             
-          Age1 = 0.0f;                                                   
+          Age1 = 0.0f;
+          Color1 = Color0[0];
           EmitVertex();                                                  
           EndPrimitive();                                                
         }
@@ -101,6 +108,7 @@ void main()
         Position1 = Position0[0] + DeltaP;
         Velocity1 = Velocity0[0] + DeltaV;
         Age1 = Age;
+        Color1 = Color0[0];
         EmitVertex();
         EndPrimitive();
       }

@@ -124,15 +124,15 @@ bool House::Initilize(std::string file)
 
 void House::Render(glm::mat4 view, glm::mat4 proj)
 {
-  /*
-  Enable();
+  
+  //Enable();
   // SetLight();
   //model = glm::scale(glm::vec3(200.0f, 200.0f, 200.0f));
-  glUniformMatrix4fv(ProjMatrix, 1, GL_FALSE, glm::value_ptr(proj));
-  glUniformMatrix4fv(ViewMatrix, 1, GL_FALSE, glm::value_ptr(view));  
-  glUniformMatrix4fv(ModelMatrix, 1, GL_FALSE, glm::value_ptr(model));  
-  glUniformMatrix4fv(NormalMatrix, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
-  */
+  //glUniformMatrix4fv(ProjMatrix, 1, GL_FALSE, glm::value_ptr(proj));
+  //glUniformMatrix4fv(ViewMatrix, 1, GL_FALSE, glm::value_ptr(view));  
+  //glUniformMatrix4fv(ModelMatrix, 1, GL_FALSE, glm::value_ptr(model));  
+  //glUniformMatrix4fv(NormalMatrix, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+  
   object.Render();
 }
 

@@ -24,6 +24,8 @@ public:
     void SetShellLifetime(float Lifetime);
     
     void SetSecondaryShellLifetime(float Lifetime);
+
+    void SetRandomColor();
     
  private:
     GLuint m_deltaTimeMillisLocation;
@@ -32,6 +34,7 @@ public:
     GLuint m_launcherLifetimeLocation;
     GLuint m_shellLifetimeLocation;
     GLuint m_secondaryShellLifetimeLocation;
+    GLuint m_newShellColor;
 };
 
 

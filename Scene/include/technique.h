@@ -16,13 +16,13 @@ public:
 
     void Enable();
 
+    GLint GetUniformLocation(const char* pUniformName);
+
 protected:
 
     bool AddShader(GLenum ShaderType, const char* pFilename);
 
     bool Finalize();
-
-    GLint GetUniformLocation(const char* pUniformName);
     
     GLint GetProgramParam(GLint param);
     

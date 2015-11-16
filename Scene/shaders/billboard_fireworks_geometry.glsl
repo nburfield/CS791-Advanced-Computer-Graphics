@@ -10,6 +10,8 @@ uniform float gBillboardSize;
 uniform float gDT;
 uniform float gTime;
 
+in vec3 color[];
+out vec3 Color;
 out vec2 TexCoord;                                                                  
                                                                                     
 void main()                                                                         
@@ -17,7 +19,8 @@ void main()
     vec3 Pos = gl_in[0].gl_Position.xyz;                                            
     vec3 toCamera = normalize(gCameraPos - Pos);                                    
     vec3 up = vec3(0.0, 1.0, 0.0);                                                  
-    vec3 right = cross(toCamera, up) * gBillboardSize;                    
+    vec3 right = cross(toCamera, up) * gBillboardSize;
+    Color = color[0];
                                                                                     
     Pos -= right;
     Pos.x = Pos.x - gDT + gTime;

@@ -9,18 +9,24 @@ uniform vec3 gCameraPos;
 uniform float gBillboardSize;
 uniform float gDT;
 uniform float gTime;
+uniform mat4 view;
 
 out vec4 pos;
 out float one;
-out vec2 TexCoord;                                                                  
+out vec2 TexCoord;
+out vec3 WorldPos;
+out vec3 Normal;
 
 void main()                                                                         
 {
-    float gTimeVal = gDT + (gTime / 500.0) - gDT;//(2 * 3.14);
+    float gTimeVal = gDT + (gTime / 1000.0) - gDT;//(2 * 3.14);
     vec3 Pos = gl_in[0].gl_Position.xyz;                                            
-    vec3 toCamera = normalize(gCameraPos - Pos);                                    
+    vec3 toCamera = normalize(gCameraPos - Pos);
     vec3 up = vec3(0.0, 1.0, 0.0);                                                  
     vec3 right = cross(toCamera, up) * gBillboardSize;
+
+    Normal = gCameraPos - Pos;
+    WorldPos = (view * vec4(gl_in[0].gl_Position.xyz, 1.0)).xyz;
     
     float green = abs(cos(Pos.y));
     Pos.x = Pos.x + green;
@@ -39,24 +45,24 @@ void main()
     Pos.y += gBillboardSize;
     Pos.z += abs(cos(gTimeVal + sin(original.x) + sin(original.z)));
     Pos.x += abs(sin(gTimeVal + cos(original.z)));
-    gl_Position = gVP * vec4(Pos, 1.0);                                             
-    TexCoord = vec2(0.0, 1.0);                                                      
+    gl_Position = gVP * vec4(Pos, 1.0);
+    TexCoord = vec2(0.0, 1.0);
     EmitVertex();
 
     Pos.y -= gBillboardSize;
     Pos.z -= abs(cos(gTimeVal + sin(original.x) + sin(original.z)));
     Pos.x -= abs(sin(gTimeVal + cos(original.z)));
-    Pos += right;                                                                   
-    gl_Position = gVP * vec4(Pos, 1.0);                                             
-    TexCoord = vec2(1.0, 0.0);                                                      
-    EmitVertex();                                                                   
-                                                                                    
+    Pos += right;
+    gl_Position = gVP * vec4(Pos, 1.0);
+    TexCoord = vec2(1.0, 0.0);
+    EmitVertex();
+
     Pos.y += gBillboardSize;
     Pos.z += abs(cos(gTimeVal + sin(original.x) + sin(original.z)));
     Pos.x += abs(sin(gTimeVal + cos(original.z))); 
-    gl_Position = gVP * vec4(Pos, 1.0);                                             
-    TexCoord = vec2(1.0, 1.0);                                                      
-    EmitVertex();                                                                   
-                                                                                    
-    EndPrimitive();                                                                 
-}                                                                                   
+    gl_Position = gVP * vec4(Pos, 1.0);
+    TexCoord = vec2(1.0, 1.0);
+    EmitVertex();
+
+    EndPrimitive();
+}

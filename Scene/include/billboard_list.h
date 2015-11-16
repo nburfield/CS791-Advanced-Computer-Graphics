@@ -17,12 +17,13 @@ public:
     
     bool Initilize(const std::string& TexFilename, std::vector<glm::vec3> vertices, glm::vec3 RenderScale);
     
-    void Render(int DeltaTimeMillis, const glm::vec3 CameraPos, const glm::mat4 VP);
+    void Render(int DeltaTimeMillis, const glm::vec3 CameraPos, const glm::mat4 VP, const glm::mat4 view);
 
 private:
     void CreatePositionBuffer(std::vector<glm::vec3> vertices, glm::vec3 RenderScale);
     
     GLuint m_VB;
+    GLuint m_view;
     Texture* m_pTexture;
     BillboardTechnique m_technique;
     int m_time;

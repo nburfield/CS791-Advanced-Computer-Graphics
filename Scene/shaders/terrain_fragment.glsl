@@ -35,31 +35,8 @@ struct PointLight
   Attenuation Atten;
 };
 
-/*
-vec4 GetDirectionalLight(BaseLight light, vec3 vNormal, vec3 vE, vec3 Position)
-{
-  vec3 N = normalize(vNormal);
-  vec3 E = normalize(-vE);
-  vec3 L = normalize(Position);
-  vec3 H = normalize(L + E);
-  vec4 ambient = vec4(light.Color, 1.0) * light.AmbientIntensity;
+uniform PointLight sunLight;
 
-
-  float Kd = max( dot(N, L), 0.0 ); //factor
-  vec4  diffuse = Kd* vec4(light.Color,1.0) * light.DiffuseIntensity; ;
-  
-  float Ks = pow( max(dot(N, H), 0.0), 0.1 );
-  vec4  specular = Ks * vec4(light.Color,1.0);
-  if( dot(L, N) < 0.0 )
-  {
-    specular = vec4(0.0, 0.0, 0.0, 1.0);
-  }
-
-  vec4 color = diffuse + specular + ambient;
-  color.a = 0.0;
-  return color;
-}
-*/
 
 vec4 GetPointLightColor(PointLight pointLight, vec3 vNormal, vec3 vE)
 {
@@ -68,26 +45,7 @@ vec4 GetPointLightColor(PointLight pointLight, vec3 vNormal, vec3 vE)
   return vec4(pointLight.Base.Color * fMult, 1.0);
 }
 
-/*
-vec4 GetPointLightColor(PointLight pointLight, vec3 vNormal, vec3 vE)
-{
-  vec3 N = normalize(vNormal);
-  vec3 E = normalize(-vE);
-  vec3 L = normalize(pointLight.Position);
-  vec3 H = normalize(L + E);
-  vec4 ambient = vec4(pointLight.Base.Color, 1.0) * pointLight.Base.AmbientIntensity;
-  float Distance = length(-L);
-
-  vec4 Color = GetDirectionalLight(pointLight, vNormal, vE);
-  float AttenuationNum =  pointLight.Atten.Constant + (pointLight.Atten.Linear * Distance) + (pointLight.Atten.Exp * Distance * Distance);
-  return Color/AttenuationNum;
-}
-*/
-
-
-uniform PointLight sunLight;
-
-//out vec4 outputColor;
+// out vec4 outputColor;
 
 layout (location = 0) out vec3 WorldPosOut;   
 layout (location = 1) out vec3 DiffuseOut;     

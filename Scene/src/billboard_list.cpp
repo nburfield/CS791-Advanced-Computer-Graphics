@@ -36,6 +36,12 @@ bool BillboardList::Initilize(const std::string& TexFilename, std::vector<glm::v
     if (!m_technique.Initilize("billboard_grass")) {
         return false;
     }
+
+    m_view = m_technique.GetUniformLocation("view");
+
+    if (m_view == INVALID_UNIFORM_LOCATION) {
+        return false;        
+    }
     
     return true;
 }
@@ -56,38 +62,7 @@ void BillboardList::CreatePositionBuffer(std::vector<glm::vec3> vertices, glm::v
   glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * Positions.size(), &Positions[0], GL_STATIC_DRAW);
 }
 
-/*
-  glm::vec3 Positions[NUM_ROWS * NUM_COLUMNS];
-  float counter_x = -10.0;
-  float counter_y = -10.0;
-  for (unsigned int j = 0 ; j < NUM_ROWS ; j++)
-  {
-    for (unsigned int i = 0 ; i < NUM_COLUMNS ; i++)
-    {
-      glm::vec3 Pos(counter_x, 0.0f, counter_y);
-      Positions[j * NUM_COLUMNS + i] = Pos;
-      counter_x = counter_x + 0.1;
-    }
-    counter_x = 0.0f;
-    counter_y = counter_y + 0.1;
-  }
-
-  glGenBuffers(1, &m_VB);
-  glBindBuffer(GL_ARRAY_BUFFER, m_VB);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(Positions), &Positions[0], GL_STATIC_DRAW);
-
-
-  for(unsigned int i = 0; i < vertices.size(); i++)
-  {
-    if(vertices[i].m_pos.y >= 0.3f && vertices[i].m_pos.y < 0.65f)
-    {
-      Positions.push_back(glm::vec3(vertices[i].m_pos.x * RenderScale.x, vertices[i].m_pos.y * RenderScale.y, vertices[i].m_pos.z * RenderScale.z));
-    }
-  }
-*/
-
-
-void BillboardList::Render(int m_delta, const glm::vec3 CameraPos, const glm::mat4 VP)
+void BillboardList::Render(int m_delta, const glm::vec3 CameraPos, const glm::mat4 VP, const glm::mat4 view)
 {
     m_time += m_delta;
     m_technique.Enable();
@@ -96,6 +71,7 @@ void BillboardList::Render(int m_delta, const glm::vec3 CameraPos, const glm::ma
     m_technique.SetTime(m_time);
     m_technique.SetCameraPosition(CameraPos);
     m_technique.SetBillboardSize(5.14f);
+    glUniformMatrix4fv(m_view, 1, GL_FALSE, glm::value_ptr(view));
     
     m_pTexture->Bind(GL_TEXTURE0);
     

@@ -28,13 +28,14 @@ bool PSUpdateTechnique::Initilize()
     return false;
   }
 
-    const GLchar* Varyings[4];    
+    const GLchar* Varyings[5];    
     Varyings[0] = "Type1";
     Varyings[1] = "Position1";
-    Varyings[2] = "Velocity1";    
+    Varyings[2] = "Velocity1";  
     Varyings[3] = "Age1";
+    Varyings[4] = "Color1";
     
-    glTransformFeedbackVaryings(m_shaderProg, 4, Varyings, GL_INTERLEAVED_ATTRIBS);
+    glTransformFeedbackVaryings(m_shaderProg, 5, Varyings, GL_INTERLEAVED_ATTRIBS);
 
     if (!Finalize()) {
         return false;
@@ -46,13 +47,15 @@ bool PSUpdateTechnique::Initilize()
     m_launcherLifetimeLocation = GetUniformLocation("gLauncherLifetime");
     m_shellLifetimeLocation = GetUniformLocation("gShellLifetime");
     m_secondaryShellLifetimeLocation = GetUniformLocation("gSecondaryShellLifetime");
+    m_newShellColor = GetUniformLocation("newColor");
 
     if (m_deltaTimeMillisLocation == INVALID_UNIFORM_LOCATION ||
         m_timeLocation == INVALID_UNIFORM_LOCATION ||
         m_randomTextureLocation == INVALID_UNIFORM_LOCATION ||
         m_launcherLifetimeLocation == INVALID_UNIFORM_LOCATION ||
         m_shellLifetimeLocation == INVALID_UNIFORM_LOCATION ||
-        m_secondaryShellLifetimeLocation == INVALID_UNIFORM_LOCATION) {
+        m_secondaryShellLifetimeLocation == INVALID_UNIFORM_LOCATION ||
+        m_newShellColor == INVALID_UNIFORM_LOCATION) {
         return false;
     }
     
@@ -75,6 +78,12 @@ void PSUpdateTechnique::SetTime(int Time)
 void PSUpdateTechnique::SetRandomTextureUnit(unsigned int TextureUnit)
 {    
     glUniform1i(m_randomTextureLocation, TextureUnit);
+}
+
+void PSUpdateTechnique::SetRandomColor()
+{   
+    glm::vec3 color = glm::normalize(glm::vec3(RandomFloat(), RandomFloat(), RandomFloat()));
+    glUniform3f(m_newShellColor, color.x, color.y, color.z);
 }
 
 

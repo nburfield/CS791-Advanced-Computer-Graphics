@@ -320,6 +320,7 @@ void Terrain::Render(glm::mat4 view, glm::mat4 proj, float dt)
   glDisableVertexAttribArray(1);
   glDisableVertexAttribArray(2);
   glDisableVertexAttribArray(3);
+
   glDisable(GL_CULL_FACE);
 }
 

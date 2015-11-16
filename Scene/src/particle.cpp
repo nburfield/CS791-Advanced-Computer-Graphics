@@ -12,7 +12,8 @@ struct Particle
     float Type;    
     glm::vec3 Pos;
     glm::vec3 Vel;    
-    float LifetimeMillis;    
+    float LifetimeMillis;
+    glm::vec3 Color;
 };
 
 
@@ -52,6 +53,7 @@ bool ParticleSystem::InitParticleSystem(const glm::vec3 Pos)
     Particles[0].Pos = Pos;
     Particles[0].Vel = glm::vec3(0.0f, 0.00000010f, 0.0f);
     Particles[0].LifetimeMillis = 0.0f;
+    Particles[0].Color = glm::vec3(0.0f, 0.0f, 1.0f);
 
     glGenTransformFeedbacks(2, m_transformFeedback);    
     glGenBuffers(2, m_particleBuffer);
@@ -125,6 +127,7 @@ void ParticleSystem::UpdateParticles(int DeltaTimeMillis)
     m_updateTechnique.Enable();
     m_updateTechnique.SetTime(m_time);
     m_updateTechnique.SetDeltaTimeMillis(DeltaTimeMillis);
+    m_updateTechnique.SetRandomColor();
    
     m_randomTexture.Bind(GL_TEXTURE3);
     
@@ -137,11 +140,13 @@ void ParticleSystem::UpdateParticles(int DeltaTimeMillis)
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(4);
 
     glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), 0);                 // type
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*)4);  // position
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*)16); // velocity
     glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*)28); // lifetime
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*)40); // color
     
     glBeginTransformFeedback(GL_POINTS);
 
@@ -160,6 +165,7 @@ void ParticleSystem::UpdateParticles(int DeltaTimeMillis)
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(2);
     glDisableVertexAttribArray(3);
+    glDisableVertexAttribArray(4);
 }
     
 
@@ -175,10 +181,13 @@ void ParticleSystem::RenderParticles(const glm::mat4 VP, const glm::vec3 CameraP
     glBindBuffer(GL_ARRAY_BUFFER, m_particleBuffer[m_currTFB]);    
 
     glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*)4);  // position
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*)40);  // position
 
     glDrawTransformFeedback(GL_POINTS, m_transformFeedback[m_currTFB]);
 
     glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
 }
