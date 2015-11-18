@@ -45,7 +45,7 @@ void main()
     {
       Type1 = PARTICLE_TYPE_SHELL;
       Position1 = Position0[0];
-      vec3 Dir = GetRandomDir(gTime/1000.0);
+      vec3 Dir = GetRandomDir(gTime/1510.0);
       Dir.y = max(Dir.y, 0.5);
       Velocity1 = normalize(Dir) / 20.0;
       Age1 = 0.0;
@@ -66,7 +66,7 @@ void main()
 
   else
   {                                                                          
-    float DeltaTimeSecs = gDeltaTimeMillis;// / 70.0f;
+    float DeltaTimeSecs = gDeltaTimeMillis; // / 70.0f;
     float t1 = Age0[0] / 1000.0;
     float t2 = Age / 1000.0;
     vec3 DeltaP = DeltaTimeSecs * Velocity0[0];                                 

@@ -37,11 +37,12 @@ bool BillboardList::Initilize(const std::string& TexFilename, std::vector<glm::v
         return false;
     }
 
+    /*
     m_view = m_technique.GetUniformLocation("view");
-
     if (m_view == INVALID_UNIFORM_LOCATION) {
         return false;        
     }
+    */
     
     return true;
 }

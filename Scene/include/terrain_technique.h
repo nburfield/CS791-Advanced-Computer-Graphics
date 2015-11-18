@@ -10,10 +10,10 @@
 
 // GDAL includes
 //gdal
-#include <gdal.h>
-#include <gdal_priv.h>
-#include <gdalwarper.h>
-#include <ogrsf_frmts.h>
+//#include <gdal.h>
+//#include <gdal_priv.h>
+//#include <gdalwarper.h>
+//#include <ogrsf_frmts.h>
 
 class Terrain : public Technique
 {

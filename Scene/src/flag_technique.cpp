@@ -110,7 +110,7 @@ bool FlagTechnique::Initilize()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * Indices.size(), &Indices[0], GL_STATIC_DRAW);
 
-    texture = new Texture(GL_TEXTURE_2D, "../Content/pirate.jpg");
+    texture = new Texture(GL_TEXTURE_2D, "../content/pirate.jpg");
   
     if (!texture->Load())
     {

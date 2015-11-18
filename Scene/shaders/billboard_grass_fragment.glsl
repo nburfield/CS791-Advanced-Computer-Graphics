@@ -4,7 +4,6 @@ uniform sampler2D gColorMap;
 
 in vec4 pos;                                                                   
 in vec2 TexCoord;                                                                   
-// out vec4 FragColor; 
 in vec3 WorldPos;
 in vec3 Normal;     
 

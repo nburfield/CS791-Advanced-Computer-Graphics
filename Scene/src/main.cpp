@@ -18,6 +18,7 @@
 #include <ds_point_light_pass_tech.h>
 #include <null_technique.h>
 #include <skybox.h>
+#include <chrono>
 using namespace chrono;
 
 
@@ -78,6 +79,8 @@ float getdt();
 std::chrono::time_point<std::chrono::high_resolution_clock> t1,t2;
 long long m_currentTimeMillis;
 high_resolution_clock::time_point current;
+
+unsigned int DT;
 
 
 // Main
@@ -302,16 +305,16 @@ void InitLights()
   pointLight[0].Attenuation.Linear = 0.0f;
   pointLight[0].Attenuation.Exp = 0.3f;
 
-  pointLight[1].DiffuseIntensity = 1.2f;
-  pointLight[1].Color = COLOR_RED;
-  pointLight[1].Position = glm::vec3(-112.61, 66.89, 30.95);
+  pointLight[1].DiffuseIntensity = 10.2f;
+  pointLight[1].Color = COLOR_GREEN;
+  pointLight[1].Position = glm::vec3(-101.83, 59.36, 26.56);
   pointLight[1].Attenuation.Constant = 0.0f;
   pointLight[1].Attenuation.Linear = 0.0f;
   pointLight[1].Attenuation.Exp = 0.3f;
 
-  pointLight[2].DiffuseIntensity = 0.2f;
-  pointLight[2].Color = COLOR_BLUE;
-  pointLight[2].Position = glm::vec3(0.0f, 0.0f, 3.0f);
+  pointLight[2].DiffuseIntensity = 10.2f;
+  pointLight[2].Color = COLOR_RED;
+  pointLight[2].Position = glm::vec3(-52.69, 59.36, 68.63);
   pointLight[2].Attenuation.Constant = 0.0f;
   pointLight[2].Attenuation.Linear = 0.0f;        
   pointLight[2].Attenuation.Exp = 0.3f;
@@ -319,6 +322,7 @@ void InitLights()
 
 void Update()
 {
+  DT = getDT();
   camera->update();
   pointLight[0].Position = glm::vec3(x, y, z);
 }
@@ -346,11 +350,10 @@ void GeometryPass()
   glEnable(GL_DEPTH_TEST);
 
   // Render Stuff
-  GeomPass.SetWVP( camera->GetProjection() * camera->GetView() * house->model);
-  GeomPass.SetWorldMatrix(camera->GetView());
+  //GeomPass.SetWVP( camera->GetProjection() * camera->GetView() * house->model);
+  //GeomPass.SetWorldMatrix(camera->GetView());
   house->Render(camera->GetView(), camera->GetProjection());
 
-  unsigned int DT = getDT();
   grass->Render(DT, camera->getPos() + camera->getFocus(), camera->GetProjection() * camera->GetView(), camera->GetView());
 
   float dt = getdt();
@@ -483,30 +486,18 @@ void Render()
 
   DirectionalLightPass();
 
-  float dt = getdt();
-  terrain->Render(camera->GetView(), camera->GetProjection(), dt);
-
-
-  // Render Stuff
-  GeomPass.Enable();
-  GeomPass.SetWVP( camera->GetProjection() * camera->GetView() * house->model);
-  GeomPass.SetWorldMatrix(camera->GetView());
-  house->Render(camera->GetView(), camera->GetProjection());
-
   flag->Render(glm::vec3(-107.74, 86.13, -5.04), camera->GetView(), camera->GetProjection());
-  water->Render(glm::vec3(275.72, 35.04, 660.75), camera->GetView(), camera->GetProjection());
-  triangle->Render(glm::vec3(0, 0, 0), camera->GetView(), camera->GetProjection());
+  //water->Render(glm::vec3(275.72, 35.04, 660.75), camera->GetView(), camera->GetProjection());
+  //triangle->Render(glm::vec3(0, 0, 0), camera->GetView(), camera->GetProjection());
 
-  unsigned int DT = getDT();
+  //skyBox->Render(camera->GetProjection(), camera->GetView(), 
+  //                  glm::translate(glm::mat4(1.0f), camera->getPos()));
+
+
   if(fireworks != NULL)
   {
     fireworks->Render(DT, camera->getPos() + camera->getFocus(), camera->GetProjection() * camera->GetView());    
   }
-  // grass->Render(DT, camera->getPos() + camera->getFocus(), camera->GetProjection() * camera->GetView(), camera->GetView());
-
-  skyBox->Render(camera->GetProjection(), camera->GetView(), 
-                    glm::translate(glm::mat4(1.0f), camera->getPos()));
-
 
   FinalPass();
 
@@ -515,7 +506,7 @@ void Render()
   if ( error != GL_NO_ERROR )
   {
     string val = ErrorString( error );
-    std::cout<< "Error initializing OpenGL! " << error << ", " << val << std::endl;
+    // std::cout<< "Error initializing OpenGL! " << error << ", " << val << std::endl;
   }
 
   // Swap to the Window
@@ -690,7 +681,7 @@ bool Keyboard(SDL_Event e, float dt)
         }
 
         fireworks = new ParticleSystem(); 
-        if(!fireworks->InitParticleSystem(glm::vec3(38.22, 73.09, -25.20)))
+        if(!fireworks->InitParticleSystem(glm::vec3(-114.92, 132.96, 225.02)))
         {
           printf("Particle System Failed to init.\n");
           delete fireworks;

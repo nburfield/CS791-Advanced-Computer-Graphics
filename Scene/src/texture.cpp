@@ -30,10 +30,17 @@ bool Texture::Load()
 {
     try {
         m_image.read(m_fileName);
+    }
+    catch (Magick::Error& Error) {
+        std::cout << "Error loading texture file '" << m_fileName << "': " << Error.what() << std::endl;
+        return false;
+    }
+
+    try {
         m_image.write(&m_blob, "RGBA");
     }
     catch (Magick::Error& Error) {
-        std::cout << "Error loading texture '" << m_fileName << "': " << Error.what() << std::endl;
+        std::cout << "Error loading texture to BLOB '" << m_fileName << "': " << Error.what() << std::endl;
         return false;
     }
 
