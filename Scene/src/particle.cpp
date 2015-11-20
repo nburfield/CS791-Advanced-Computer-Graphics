@@ -23,7 +23,8 @@ ParticleSystem::ParticleSystem()
     m_currTFB = 1;
     m_isFirst = true;
     m_time = 0;
-    m_pTexture = NULL;            
+    m_pTexture = NULL;
+    srand(time(NULL));
     
     ZERO_MEM(m_transformFeedback);
     ZERO_MEM(m_particleBuffer);
@@ -184,7 +185,7 @@ void ParticleSystem::RenderParticles(const glm::mat4 VP, const glm::vec3 CameraP
     glEnableVertexAttribArray(1);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*)4);  // position
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*)40);  // position
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*)40);  // color
 
     glDrawTransformFeedback(GL_POINTS, m_transformFeedback[m_currTFB]);
 

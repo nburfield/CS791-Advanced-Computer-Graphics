@@ -82,7 +82,7 @@ void PSUpdateTechnique::SetRandomTextureUnit(unsigned int TextureUnit)
 
 void PSUpdateTechnique::SetRandomColor()
 {   
-    glm::vec3 color = glm::normalize(glm::vec3(RandomFloat(), RandomFloat(), RandomFloat()));
+    glm::vec3 color = glm::normalize(glm::vec3(RandomBetween(0,255), RandomBetween(0,255), RandomBetween(0,255)));
     glUniform3f(m_newShellColor, color.x, color.y, color.z);
 }
 

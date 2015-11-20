@@ -18,7 +18,8 @@ public:
     void Render(glm::vec3 loc, glm::mat4 view, glm::mat4 proj);
 
 private:
-    GLuint m_WVPLocation; 
+    GLuint m_WVPLocation;
+    GLuint m_modelMatrix;
     GLuint VB;
     GLuint IB;
     Texture *texture;

@@ -59,7 +59,7 @@ void main()
     Position1 = Position0[0];                                                   
     Velocity1 = Velocity0[0];
     Age1 = Age;
-    Color1 = Color0[0];
+    Color1 = newColor;
     EmitVertex();                                                               
     EndPrimitive();                                                             
   }
@@ -80,20 +80,20 @@ void main()
         Position1 = Position0[0] + DeltaP;
         Velocity1 = Velocity0[0] + DeltaV;                                  
         Age1 = Age;
-        Color1 = Color0[0];
+        Color1 = newColor;
         EmitVertex();                                                       
         EndPrimitive();                                                     
       }
       else
       {                                                                  
-        for (int i = 0 ; i < 10 ; i++)
+        for (int i = 0 ; i < 50 ; i++)
         {                                    
           Type1 = PARTICLE_TYPE_SECONDARY_SHELL;
           Position1 = Position0[0];
           vec3 Dir = GetRandomDir((gTime + i)/1000.0);                   
           Velocity1 = normalize(Dir) / 20.0;                             
           Age1 = 0.0f;
-          Color1 = Color0[0];
+          Color1 = newColor;
           EmitVertex();                                                  
           EndPrimitive();                                                
         }
@@ -108,7 +108,7 @@ void main()
         Position1 = Position0[0] + DeltaP;
         Velocity1 = Velocity0[0] + DeltaV;
         Age1 = Age;
-        Color1 = Color0[0];
+        Color1 = newColor;
         EmitVertex();
         EndPrimitive();
       }

@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string>
 #include <string.h>
+#include <time.h>
 
 using namespace std;
 
@@ -62,6 +63,7 @@ void OgldevFileError(const char* pFileName, uint line, const char* pFileError);
 }
 
 float RandomFloat();
+int RandomBetween(int low, int high);
 
 #define GLCheckError() (glGetError() == GL_NO_ERROR)
 

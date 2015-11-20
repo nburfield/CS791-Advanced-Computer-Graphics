@@ -33,6 +33,11 @@ bool FlagTechnique::Initilize()
     return false;
   }
 
+  m_modelMatrix = GetUniformLocation("modelMatrix");
+  if (m_modelMatrix == INVALID_UNIFORM_LOCATION) {
+    return false;
+  }
+
     loc_waveTime = GetUniformLocation("waveTime");
   if(loc_waveTime == INVALID_UNIFORM_LOCATION)
   {
@@ -74,6 +79,72 @@ bool FlagTechnique::Initilize()
         }
     }
 
+  // Build normals
+    /*
+  vector< vector<glm::vec3> > vNormals[2]; 
+  for(int i = 0; i < 2; i++)
+  {
+    vNormals[i] = vector< vector<glm::vec3> >(width-1, vector<glm::vec3>(height-1)); 
+  }
+
+  for(int i = 0; i < height-1; i++) 
+  { 
+    for(int j = 0; j < width-1; j++) 
+    { 
+      glm::vec3 vTriangle0[] = { Vertices[(i * height)+j+1].m_pos, Vertices[(i * height)+j].m_pos, Vertices[((1+i) * height)+j+1].m_pos}; 
+      glm::vec3 vTriangle1[] = { Vertices[((1+i) * height)+j+2].m_pos, Vertices[(i * height)+j+1].m_pos, Vertices[((1+i) * height)+j+1].m_pos}; 
+
+      glm::vec3 vTriangleNorm0 = glm::cross(vTriangle0[0]-vTriangle0[1], vTriangle0[1]-vTriangle0[2]); 
+      glm::vec3 vTriangleNorm1 = glm::cross(vTriangle1[0]-vTriangle1[1], vTriangle1[1]-vTriangle1[2]); 
+
+      vNormals[0][i][j] = glm::normalize(vTriangleNorm0); 
+      vNormals[1][i][j] = glm::normalize(vTriangleNorm1); 
+    } 
+  }
+
+  // Sum Normals, and normalize
+  for(int i = 0; i < height; i++) 
+  { 
+    for(int j = 0; j < width; j++) 
+    { 
+      glm::vec3 vFinalNormal = glm::vec3(0.0f, 0.0f, 0.0f); 
+
+      // Look for upper-left triangles
+      if(j != 0 && i != 0) 
+      {
+        for(int k = 0; k < 2; k++)
+        {
+          vFinalNormal += vNormals[k][i-1][j-1]; 
+        }
+      }
+
+      // Look for upper-right triangles
+      if(i != 0 && j != height-1)
+      {
+        vFinalNormal += vNormals[0][i-1][j]; 
+      }
+
+      // Look for bottom-right triangles
+      if(i != height-1 && j != height-1)
+      {
+        for(int k = 0; k < 2; k++)
+        {
+          vFinalNormal += vNormals[k][i][j]; 
+        }
+      }
+
+      // Look for bottom-left triangles
+      if(i != height-1 && j != 0)
+      {
+        vFinalNormal += vNormals[1][i][j-1]; 
+      }
+
+      vFinalNormal = glm::normalize(vFinalNormal);
+      Vertices[(i*height) + j].m_normal = vFinalNormal;
+    } 
+  }
+  */
+  
     int scale_width = width/increment;
     int scale_height = height/increment;
     for(int i = 0; i < scale_height; i++)
@@ -88,16 +159,6 @@ bool FlagTechnique::Initilize()
         Indices.push_back(((1+i) * scale_height)+j+2);
         Indices.push_back((i * scale_height)+j+1);
         Indices.push_back(((1+i) * scale_height)+j+1);
-        
-        /*
-        Indices.push_back((i * scale_height)+j+1);
-        Indices.push_back((i * scale_height)+j);
-        Indices.push_back(((1+i) * scale_height)+j);
-
-        Indices.push_back(((1+i) * scale_height)+j);
-        Indices.push_back(((1+i) * scale_height)+j+1);
-        Indices.push_back((i * scale_height)+j+1);
-        */
       }
     }
     
@@ -124,9 +185,11 @@ void FlagTechnique::Render(glm::vec3 loc, glm::mat4 view, glm::mat4 proj)
 {
     Enable();
     waveTime += waveFreq;
-    glm::mat4 mvp = proj * view * glm::translate(glm::mat4(1.0f), loc) * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(0,1,0));
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), loc) * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(0,1,0));
+    glm::mat4 mvp = proj * view * model;
 
-    glUniformMatrix4fv(m_WVPLocation, 1, GL_FALSE, glm::value_ptr(mvp));    
+    glUniformMatrix4fv(m_WVPLocation, 1, GL_FALSE, glm::value_ptr(mvp));
+    glUniformMatrix4fv(m_modelMatrix, 1, GL_FALSE, glm::value_ptr(model)); 
     glUniform1f(loc_waveTime, waveTime);
     glUniform1f(loc_waveWidth, waveWidth);
     glUniform1f(loc_waveHeight, waveHeight);

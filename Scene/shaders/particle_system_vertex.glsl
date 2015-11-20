@@ -6,6 +6,8 @@ layout (location = 2) in vec3 Velocity;
 layout (location = 3) in float Age;
 layout (location = 4) in vec3 Color;
 
+uniform vec3 newColor;
+
 out float Type0;
 out vec3 Position0;
 out vec3 Velocity0;

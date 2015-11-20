@@ -13,7 +13,7 @@ Window::~Window()
   SDL_Quit();
 }
 
-bool Window::Initilize(string name, int height, int width)
+bool Window::Initilize(string name, int* height, int* width)
 {
     // Start SDL
   if(SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -31,7 +31,11 @@ bool Window::Initilize(string name, int height, int width)
   SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 5 );
 
   // Create window
-  gWindow = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
+  SDL_DisplayMode current;
+  SDL_GetCurrentDisplayMode(0, &current);
+  *height = current.h;
+  *width = current.w;
+  gWindow = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, *width, *height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
   if(gWindow == NULL)
   {
     printf("Widow failed to create: %s\n", SDL_GetError());
