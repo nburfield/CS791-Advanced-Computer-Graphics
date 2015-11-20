@@ -89,6 +89,12 @@ unsigned int DT;
 int main(int argc, char **argv)
 {
   // Init the screen
+  if(argc < 2)
+  {
+    printf("Does not have the correct arguments. Need Heightmap\n");
+    return 1;
+  }
+
   if(!Initilize(argv[1]))
   {
     printf("Failed to startup\n");
@@ -295,7 +301,7 @@ void InitLights()
   SpotLight.Cutoff =  20.0f;
   */
 
-  DirLight.AmbientIntensity = 0.1f;
+  DirLight.AmbientIntensity = 0.5f;
   DirLight.Color = COLOR_WHITE;
   DirLight.DiffuseIntensity = 0.5f;
   DirLight.Direction = glm::vec3(25.87, -64.91, 93.2);
