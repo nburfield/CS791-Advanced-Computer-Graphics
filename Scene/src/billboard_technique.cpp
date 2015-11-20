@@ -43,14 +43,14 @@ bool BillboardTechnique::Initilize(string shader)
     m_cameraPosLocation = GetUniformLocation("gCameraPos");
     m_colorMapLocation = GetUniformLocation("gColorMap");
     m_billboardSizeLocation = GetUniformLocation("gBillboardSize");
-    m_DeltaTime = GetUniformLocation("gDT"); 
+    //m_DeltaTime = GetUniformLocation("gDT"); 
     m_Time = GetUniformLocation("gTime");
 
     if (m_VPLocation == INVALID_UNIFORM_LOCATION ||
         m_cameraPosLocation == INVALID_UNIFORM_LOCATION ||
         m_billboardSizeLocation == INVALID_UNIFORM_LOCATION ||
         m_colorMapLocation == INVALID_UNIFORM_LOCATION ||
-        m_DeltaTime == INVALID_UNIFORM_LOCATION ||
+        /*m_DeltaTime == INVALID_UNIFORM_LOCATION ||*/
         m_Time == INVALID_UNIFORM_LOCATION) {
         return false;        
     }

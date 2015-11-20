@@ -33,6 +33,11 @@ bool WaterTechnique::Initilize()
     return false;
   }
 
+  m_modelMatrix = GetUniformLocation("modelMatrix");
+  if (m_modelMatrix == INVALID_UNIFORM_LOCATION) {
+    return false;
+  }
+
     loc_waveTime = GetUniformLocation("waveTime");
   if(loc_waveTime == INVALID_UNIFORM_LOCATION)
   {
@@ -110,7 +115,7 @@ bool WaterTechnique::Initilize()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * Indices.size(), &Indices[0], GL_STATIC_DRAW);
 
-    texture = new Texture(GL_TEXTURE_2D, "../Content/water.jpg");
+    texture = new Texture(GL_TEXTURE_2D, "../content/water.jpg");
   
     if (!texture->Load())
     {
@@ -124,11 +129,11 @@ void WaterTechnique::Render(glm::vec3 loc, glm::mat4 view, glm::mat4 proj)
 {
     Enable();
     waveTime += waveFreq;
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), loc) * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(1,0,0));
+    glm::mat4 mvp = proj * view * model;
 
-    glm::mat4 mvp = proj * view * glm::translate(glm::mat4(1.0f), loc) 
-                    * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(1,0,0));
-
-    glUniformMatrix4fv(m_WVPLocation, 1, GL_FALSE, glm::value_ptr(mvp));    
+    glUniformMatrix4fv(m_WVPLocation, 1, GL_FALSE, glm::value_ptr(mvp));
+    glUniformMatrix4fv(m_modelMatrix, 1, GL_FALSE, glm::value_ptr(model));   
     glUniform1f(loc_waveTime, waveTime);
     glUniform1f(loc_waveWidth, waveWidth);
     glUniform1f(loc_waveHeight, waveHeight);

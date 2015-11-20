@@ -7,7 +7,7 @@
 class House : public Technique
 {
   public:
-    House(glm::vec3 loc);
+    House(glm::vec3 loc, glm::vec3 loc2, glm::vec3 loc3);
     ~House();
     bool Initilize(std::string file);
     void Render(glm::mat4 view, glm::mat4 proj);
@@ -15,9 +15,13 @@ class House : public Technique
     void Move(float step);
     void SetLight();
 
-    glm::mat4 model;
+    glm::mat4 model_house;
+    glm::mat4 model_light1;
+    glm::mat4 model_light2;
   private:
     Mesh object;
+    Mesh light1;
+    Mesh light2;
     glm::vec3 location;
     float spin;
 

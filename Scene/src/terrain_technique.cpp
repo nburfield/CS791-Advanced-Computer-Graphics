@@ -98,12 +98,16 @@ bool Terrain::Initilize(const std::string& file)
     printf("ModelMatrix not found\n");
     return false;
   }
+
+  /*
   NormalMatrix = GetUniformLocation("matrices.normalMatrix");
   if(NormalMatrix == INVALID_UNIFORM_LOCATION)
   {
     printf("NormalMatrix not found\n");
     return false;
   }
+  
+
   Color = GetUniformLocation("vColor");
   if(Color == INVALID_UNIFORM_LOCATION)
   {
@@ -153,7 +157,7 @@ bool Terrain::Initilize(const std::string& file)
     printf("SunLight.Atten.Exp not found.\n");
     return false;
   }
-
+  */
 
   TextureLocations[0] = GetUniformLocation("gSampler[0]");
   if(TextureLocations[0] == INVALID_UNIFORM_LOCATION)
@@ -192,35 +196,35 @@ bool Terrain::Initilize(const std::string& file)
 
 
   texture.resize(5);
-  texture[0] = new Texture(GL_TEXTURE_2D, "../Content/fungus.dds");
+  texture[0] = new Texture(GL_TEXTURE_2D, "../content/fungus.dds");
   if (!texture[0]->Load())
   {
     printf("Texture 0 failed\n");
     return false;
   }
 
-  texture[1] = new Texture(GL_TEXTURE_2D, "../Content/sand_grass_02.jpg");
+  texture[1] = new Texture(GL_TEXTURE_2D, "../content/sand_grass_02.jpg");
   if (!texture[1]->Load())
   {
     printf("Texture 1 failed\n");
     return false;
   }
 
-  texture[2] = new Texture(GL_TEXTURE_2D, "../Content/rock_2_4w.jpg");
+  texture[2] = new Texture(GL_TEXTURE_2D, "../content/rock_2_4w.jpg");
   if (!texture[2]->Load())
   {
     printf("Texture 2 failed\n");
     return false;
   }
 
-  texture[3] = new Texture(GL_TEXTURE_2D, "../Content/sand.jpg");
+  texture[3] = new Texture(GL_TEXTURE_2D, "../content/sand.jpg");
   if (!texture[3]->Load())
   {
     printf("Texture 3 failed\n");
     return false;
   }
 
-  texture[4] = new Texture(GL_TEXTURE_2D, "../Content/TahoeBasin_Overlay.jpg");
+  texture[4] = new Texture(GL_TEXTURE_2D, "../content/TahoeBasin_Overlay.jpg");
   if (!texture[4]->Load())
   {
     printf("Texture 4 failed\n");

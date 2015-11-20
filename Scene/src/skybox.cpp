@@ -72,8 +72,6 @@ bool SkyBox::Init(const string& Directory,
 
 void SkyBox::Render(glm::mat4 projection, glm::mat4 view, glm::mat4 camLoc)
 {
-  //glDepthFunc(GL_LEQUAL);
-
   m_pSkyboxTechnique->Enable();
   
 
@@ -84,6 +82,8 @@ void SkyBox::Render(glm::mat4 projection, glm::mat4 view, glm::mat4 camLoc)
   
   glCullFace(GL_FRONT);
   glDepthFunc(GL_LEQUAL);
+  glDepthMask(GL_TRUE);
+  glEnable(GL_DEPTH_TEST);
 
   glm::mat4 model = camLoc * glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f));
   glm::mat4 mvp = projection * view * model;
@@ -93,5 +93,5 @@ void SkyBox::Render(glm::mat4 projection, glm::mat4 view, glm::mat4 camLoc)
   
   glCullFace(OldCullFaceMode);        
   glDepthFunc(OldDepthFuncMode);
-  //glDepthFunc(GL_LESS);
+  glDepthMask(GL_FALSE);  
 }

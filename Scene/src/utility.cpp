@@ -38,6 +38,10 @@ float RandomFloat()
     return ((float)RANDOM() / Max);
 }
 
+int RandomBetween(int low, int high)
+{
+  return rand() % (high - low) + low;
+}
 
 void OgldevError(const char* pFileName, uint line, const char* pError)
 {

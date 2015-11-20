@@ -1,9 +1,11 @@
 #include <house.h>
 
-House::House(glm::vec3 loc)
+House::House(glm::vec3 loc, glm::vec3 loc2, glm::vec3 loc3)
 {
   location = loc;
-  model = glm::translate(glm::mat4(1.0f), loc) * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(1,0,0));
+  model_house = glm::translate(glm::mat4(1.0f), loc) * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(1,0,0));
+  model_light1 = glm::translate(glm::mat4(1.0f), loc2);
+  model_light2 = glm::translate(glm::mat4(1.0f), loc3);
 
   Sun.AmbientIntensity = 0.02f;
   Sun.DiffuseIntensity = 0.2f;
@@ -25,6 +27,7 @@ bool House::Initilize(std::string file)
 {
   if (!Technique::Init())
   {
+    printf("Technique Init failed.\n");
     return false;
   }
 
@@ -40,6 +43,7 @@ bool House::Initilize(std::string file)
 
   if (!Finalize())
   {
+    printf("Technique Finalize failed.\n");
     return false;
   }
 
@@ -106,16 +110,30 @@ bool House::Initilize(std::string file)
     printf("ModelMatrix not found\n");
     return false;
   }
+  /*
   NormalMatrix = GetUniformLocation("matrices.normalMatrix");
   if(NormalMatrix == INVALID_UNIFORM_LOCATION)
   {
     printf("NormalMatrix not found\n");
     return false;
   }
-
+  */
 
   if(!object.LoadMesh(file))
   {
+    printf("The Mesh failed to load.\n");
+    return false;
+  }
+
+  if(!light1.LoadMesh("../content/streetlamp/streetlamp.obj"))
+  {
+    printf("The lamp1 failed to load.\n");
+    return false;
+  }
+
+  if(!light2.LoadMesh("../content/streetlamp/streetlamp.obj"))
+  {
+    printf("The lamp2 failed to load.\n");
     return false;
   }
   return true;
@@ -125,15 +143,23 @@ bool House::Initilize(std::string file)
 void House::Render(glm::mat4 view, glm::mat4 proj)
 {
   
-  //Enable();
+  Enable();
   // SetLight();
   //model = glm::scale(glm::vec3(200.0f, 200.0f, 200.0f));
-  //glUniformMatrix4fv(ProjMatrix, 1, GL_FALSE, glm::value_ptr(proj));
-  //glUniformMatrix4fv(ViewMatrix, 1, GL_FALSE, glm::value_ptr(view));  
-  //glUniformMatrix4fv(ModelMatrix, 1, GL_FALSE, glm::value_ptr(model));  
+  glUniformMatrix4fv(ProjMatrix, 1, GL_FALSE, glm::value_ptr(proj));
+  glUniformMatrix4fv(ViewMatrix, 1, GL_FALSE, glm::value_ptr(view));  
+  glUniformMatrix4fv(ModelMatrix, 1, GL_FALSE, glm::value_ptr(model_house));  
   //glUniformMatrix4fv(NormalMatrix, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
   
   object.Render();
+
+  glUniformMatrix4fv(ModelMatrix, 1, GL_FALSE, glm::value_ptr(model_light1));  
+  
+  light1.Render();
+
+  glUniformMatrix4fv(ModelMatrix, 1, GL_FALSE, glm::value_ptr(model_light2));  
+  
+  light2.Render();
 }
 
 
@@ -156,13 +182,13 @@ void House::Rotate(float dt)
 {
   spin += dt * M_PI;
   //model = glm::rotate(model, spin, glm::vec3(0.0, 1.0, 0.0));
-  model = glm::translate( glm::mat4(1.0f), glm::vec3(500.0 * cos(spin), 500.0 * sin(spin), 0.0));
+  model_house = glm::translate( glm::mat4(1.0f), glm::vec3(500.0 * cos(spin), 500.0 * sin(spin), 0.0));
 }
 
 
 void House::Move(float step)
 {
   location.y += step;
-  model = glm::translate(glm::mat4(1.0f), location) * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(1,0,0));
+  model_house = glm::translate(glm::mat4(1.0f), location) * glm::rotate(glm::mat4(1.0f), -1.5708f, glm::vec3(1,0,0));
   printf("Location: %.2f, %.2f, %.2f\n", location.x, location.y, location.z);
 }

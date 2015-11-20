@@ -19,6 +19,7 @@ public:
 
 private:
     GLuint m_WVPLocation; 
+    GLuint m_modelMatrix;
     GLuint VB;
     GLuint IB;
     Texture *texture;

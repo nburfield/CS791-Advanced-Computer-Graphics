@@ -30,6 +30,7 @@ struct DirectionalLight : public BaseLight
 struct PointLight : public BaseLight
 {
     glm::vec3 Position;
+    bool on;
 
     struct
     {
@@ -44,6 +45,7 @@ struct PointLight : public BaseLight
         Attenuation.Constant = 0.0f;
         Attenuation.Linear = 0.0f;
         Attenuation.Exp = 0.0f;
+        on = false;
     }
 };
 
@@ -64,5 +66,7 @@ struct SpotLight : public PointLight
 #define COLOR_GREEN glm::vec3(0.0f, 1.0f, 0.0f)
 #define COLOR_CYAN glm::vec3(0.0f, 1.0f, 1.0f)
 #define COLOR_BLUE glm::vec3(0.0f, 0.0f, 1.0f)
+#define COLOR_YELLOW glm::vec3(1.0f, 1.0f, 0.0f)
+#define COLOR_NIGHT glm::vec3(119.0f/255.0f, 136.0f/255.0f, 153.0f/255.0f)
 
 #endif

@@ -24,9 +24,6 @@ void main()
     vec3 toCamera = normalize(gCameraPos - Pos);
     vec3 up = vec3(0.0, 1.0, 0.0);                                                  
     vec3 right = cross(toCamera, up) * gBillboardSize;
-
-    Normal = gCameraPos - Pos;
-    WorldPos = (view * vec4(gl_in[0].gl_Position.xyz, 1.0)).xyz;
     
     float green = abs(cos(Pos.y));
     Pos.x = Pos.x + green;
@@ -37,7 +34,9 @@ void main()
         pos.y += 0.8f;
     }
                                                                                     
-    Pos -= right;                                                                   
+    Pos -= right;
+    Normal = gCameraPos - Pos;
+    WorldPos = (Pos).xyz;                                                               
     gl_Position = gVP * vec4(Pos, 1.0);                                             
     TexCoord = vec2(0.0, 0.0);                                                      
     EmitVertex();                                                                   
@@ -45,6 +44,8 @@ void main()
     Pos.y += gBillboardSize;
     Pos.z += abs(cos(gTimeVal + sin(original.x) + sin(original.z)));
     Pos.x += abs(sin(gTimeVal + cos(original.z)));
+    Normal = gCameraPos - Pos;
+    WorldPos = (Pos).xyz;
     gl_Position = gVP * vec4(Pos, 1.0);
     TexCoord = vec2(0.0, 1.0);
     EmitVertex();
@@ -53,13 +54,17 @@ void main()
     Pos.z -= abs(cos(gTimeVal + sin(original.x) + sin(original.z)));
     Pos.x -= abs(sin(gTimeVal + cos(original.z)));
     Pos += right;
+    Normal = gCameraPos - Pos;
+    WorldPos = (Pos).xyz;
     gl_Position = gVP * vec4(Pos, 1.0);
     TexCoord = vec2(1.0, 0.0);
     EmitVertex();
 
     Pos.y += gBillboardSize;
     Pos.z += abs(cos(gTimeVal + sin(original.x) + sin(original.z)));
-    Pos.x += abs(sin(gTimeVal + cos(original.z))); 
+    Pos.x += abs(sin(gTimeVal + cos(original.z)));
+    Normal = gCameraPos - Pos;
+    WorldPos = (Pos).xyz;
     gl_Position = gVP * vec4(Pos, 1.0);
     TexCoord = vec2(1.0, 1.0);
     EmitVertex();

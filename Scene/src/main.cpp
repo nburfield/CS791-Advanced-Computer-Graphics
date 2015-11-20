@@ -18,12 +18,14 @@
 #include <ds_point_light_pass_tech.h>
 #include <null_technique.h>
 #include <skybox.h>
+#include <chrono>
+
 using namespace chrono;
 
 
 // Window
-#define WINDOW_WIDTH  800
-#define WINDOW_HEIGHT 600
+int WINDOW_WIDTH = 800;
+int WINDOW_HEIGHT = 600;
 
 
 // Functions
@@ -40,7 +42,8 @@ std::string ErrorString(GLenum error);
 // Used for object placement
 float x = -84.78, y = 59.36, z = 2.06;
 int selectMoveItem = 0;
-
+const unsigned int numPointLights = 10;
+float speed = 0.1f;
 
 // Global Variables
 Window *window;
@@ -60,7 +63,7 @@ DSGeomPassTech GeomPass;
 DSDirLightPassTech DirLightPass;
 DSPointLightPassTech PointLightPass;
 NullTechnique NullTech;
-PointLight pointLight[3];
+PointLight pointLight[numPointLights];
 Mesh sphere;
 DirectionalLight DirLight;
 
@@ -78,6 +81,8 @@ float getdt();
 std::chrono::time_point<std::chrono::high_resolution_clock> t1,t2;
 long long m_currentTimeMillis;
 high_resolution_clock::time_point current;
+
+unsigned int DT;
 
 
 // Main
@@ -122,7 +127,7 @@ bool Initilize(char *filename)
 {
   // Init Window
   window = new Window();
-  if(!window->Initilize("Nolan Scene", WINDOW_HEIGHT, WINDOW_WIDTH))
+  if(!window->Initilize("Nolan Scene", &WINDOW_HEIGHT, &WINDOW_WIDTH))
   {
     printf("Window Failed to Initialize\n");
     return false;
@@ -159,8 +164,8 @@ bool Initilize(char *filename)
   }
 
   // Load the House
-  house = new House(glm::vec3(-107.76, 57.87, 4.54));
-  if(!house->Initilize("../content/House/3ds_file.3DS"))
+  house = new House(glm::vec3(-107.76, 57.87, 4.54), glm::vec3(-5.10, 57.87, -49.80), glm::vec3(-8.51, 57.87, -7.37));
+  if(!house->Initilize("../content/House/3ds_file.3DS")) // ../content/streetlamp/streetlamp.obj
   {
     printf("The House did not load.\n");
     return false;
@@ -201,7 +206,7 @@ bool Initilize(char *filename)
 
   // Load the terrain
   terrain = new Terrain(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1000.0f, 200.0f, 1000.0f));
-  if(!terrain->Initilize(filename)) //heightmap.bmp, island-height.jpg
+  if(!terrain->Initilize("../content/TahoeBasin.jpg")) //heightmap.bmp, island-height.jpg
   {
     printf("The Terrain did not load.\n");
     return false;
@@ -295,30 +300,90 @@ void InitLights()
   DirLight.DiffuseIntensity = 0.5f;
   DirLight.Direction = glm::vec3(25.87, -64.91, 93.2);
 
-  pointLight[0].DiffuseIntensity = 10.6f;
-  pointLight[0].Color = COLOR_BLUE;
-  pointLight[0].Position = glm::vec3(-84.78, 59.36, 2.06);
-  pointLight[0].Attenuation.Constant = 0.0f;
-  pointLight[0].Attenuation.Linear = 0.0f;
+  pointLight[0].DiffuseIntensity = 0.6f;
+  pointLight[0].Color = COLOR_GREEN;
+  pointLight[0].Position = glm::vec3(15.51, 59.73, 49.37);
+  pointLight[0].Attenuation.Constant = 1.8f;
+  pointLight[0].Attenuation.Linear = 0.8f;
   pointLight[0].Attenuation.Exp = 0.3f;
+  pointLight[0].on = false;
 
-  pointLight[1].DiffuseIntensity = 1.2f;
-  pointLight[1].Color = COLOR_RED;
-  pointLight[1].Position = glm::vec3(-112.61, 66.89, 30.95);
-  pointLight[1].Attenuation.Constant = 0.0f;
-  pointLight[1].Attenuation.Linear = 0.0f;
-  pointLight[1].Attenuation.Exp = 0.3f;
+  pointLight[1].DiffuseIntensity = 100.6f;
+  pointLight[1].Color = COLOR_WHITE;
+  pointLight[1].Position = glm::vec3(-5.10, 59.73, -49.80);
+  pointLight[1].Attenuation.Constant = 1.8f;
+  pointLight[1].Attenuation.Linear = 0.8f;
+  pointLight[1].Attenuation.Exp = 1.3f;
+  pointLight[1].on = false;
 
-  pointLight[2].DiffuseIntensity = 0.2f;
-  pointLight[2].Color = COLOR_BLUE;
-  pointLight[2].Position = glm::vec3(0.0f, 0.0f, 3.0f);
-  pointLight[2].Attenuation.Constant = 0.0f;
-  pointLight[2].Attenuation.Linear = 0.0f;        
+  pointLight[2].DiffuseIntensity = 5.2f;
+  pointLight[2].Color = COLOR_RED;
+  pointLight[2].Position = glm::vec3(-90.41, 71.90, 9.39);
+  pointLight[2].Attenuation.Constant = 0.5f;
+  pointLight[2].Attenuation.Linear = 0.5f;        
   pointLight[2].Attenuation.Exp = 0.3f;
+  pointLight[2].on = false;
+
+  pointLight[3].DiffuseIntensity = 5.6f;
+  pointLight[3].Color = COLOR_YELLOW;
+  pointLight[3].Position = glm::vec3(-93.80, 67.13, 21.08);
+  pointLight[3].Attenuation.Constant = 0.3f;
+  pointLight[3].Attenuation.Linear = 0.3f;
+  pointLight[3].Attenuation.Exp = 0.3f;
+  pointLight[3].on = false;
+
+  pointLight[4].DiffuseIntensity = 100.2f;
+  pointLight[4].Color = COLOR_WHITE;
+  pointLight[4].Position = glm::vec3(-8.51, 62.27, -7.37);
+  pointLight[4].Attenuation.Constant = 1.0f;
+  pointLight[4].Attenuation.Linear = 1.0f;
+  pointLight[4].Attenuation.Exp = 1.3f;
+  pointLight[4].on = false;
+
+  pointLight[5].DiffuseIntensity = 50.2f;
+  pointLight[5].Color = COLOR_GREEN;
+  pointLight[5].Position = glm::vec3(78.15, 69.13, -218.24);
+  pointLight[5].Attenuation.Constant = 1.3f;
+  pointLight[5].Attenuation.Linear = 1.3f;        
+  pointLight[5].Attenuation.Exp = 0.3f;
+  pointLight[5].on = false;
+
+  pointLight[6].DiffuseIntensity = 5.2f;
+  pointLight[6].Color = COLOR_RED;
+  pointLight[6].Position = glm::vec3(-112.34, 67.47, 33.17);
+  pointLight[6].Attenuation.Constant = 0.5f;
+  pointLight[6].Attenuation.Linear = 0.5f;        
+  pointLight[6].Attenuation.Exp = 0.3f;
+  pointLight[6].on = false;
+
+  pointLight[7].DiffuseIntensity = 5.2f;
+  pointLight[7].Color = COLOR_RED;
+  pointLight[7].Position = glm::vec3(-133.68, 74.60, 0.62);
+  pointLight[7].Attenuation.Constant = 0.5f;
+  pointLight[7].Attenuation.Linear = 0.5f;        
+  pointLight[7].Attenuation.Exp = 0.3f;
+  pointLight[7].on = false;
+
+  pointLight[8].DiffuseIntensity = 5.2f;
+  pointLight[8].Color = COLOR_RED;
+  pointLight[8].Position = glm::vec3(-129.65, 70.87, -21.60);
+  pointLight[8].Attenuation.Constant = 0.5f;
+  pointLight[8].Attenuation.Linear = 0.5f;        
+  pointLight[8].Attenuation.Exp = 0.3f;
+  pointLight[8].on = false;
+
+  pointLight[9].DiffuseIntensity = 5.2f;
+  pointLight[9].Color = COLOR_RED;
+  pointLight[9].Position = glm::vec3(-110.80, 70.77, -22.03);
+  pointLight[9].Attenuation.Constant = 0.5f;
+  pointLight[9].Attenuation.Linear = 0.5f;        
+  pointLight[9].Attenuation.Exp = 0.3f;
+  pointLight[9].on = false;
 }
 
 void Update()
 {
+  DT = getDT();
   camera->update();
   pointLight[0].Position = glm::vec3(x, y, z);
 }
@@ -346,11 +411,13 @@ void GeometryPass()
   glEnable(GL_DEPTH_TEST);
 
   // Render Stuff
-  GeomPass.SetWVP( camera->GetProjection() * camera->GetView() * house->model);
-  GeomPass.SetWorldMatrix(camera->GetView());
+  //GeomPass.SetWVP( camera->GetProjection() * camera->GetView() * house->model);
+  //GeomPass.SetWorldMatrix(camera->GetView());
   house->Render(camera->GetView(), camera->GetProjection());
 
-  unsigned int DT = getDT();
+  flag->Render(glm::vec3(-107.74, 86.13, -5.04), camera->GetView(), camera->GetProjection());
+  water->Render(glm::vec3(275.72, 35.04, 660.75), camera->GetView(), camera->GetProjection());
+
   grass->Render(DT, camera->getPos() + camera->getFocus(), camera->GetProjection() * camera->GetView(), camera->GetView());
 
   float dt = getdt();
@@ -415,7 +482,7 @@ void DSPointLightPass(unsigned int PointLightIndex)
             
   PointLightPass.SetWVP(camera->GetProjection() * camera->GetView() * 
                         glm::translate(glm::mat4(1.0f), pointLight[PointLightIndex].Position) * 
-                        glm::scale(glm::mat4(1.0f), glm::vec3(BBoxScale*10000, BBoxScale*10000, BBoxScale*10000)));
+                        glm::scale(glm::mat4(1.0f), glm::vec3(BBoxScale, BBoxScale, BBoxScale)));
 
   PointLightPass.SetPointLight(pointLight[PointLightIndex]);
   sphere.Render(); 
@@ -439,12 +506,13 @@ void DirectionalLightPass()
   glBlendEquation(GL_FUNC_ADD);
   glBlendFunc(GL_ONE, GL_ONE);
             
-  float BBoxScale = CalcPointLightBSphere(pointLight[0]); 
+  //float BBoxScale = CalcPointLightBSphere(pointLight[0]);
+
   DirLightPass.SetWVP(camera->GetProjection() * camera->GetView() * 
                       glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f, 1000.0f, 1000.0f)));
 
 
-  // DirLightPass.SetWVP(camera->GetProjection() * camera->GetView() * 
+  //DirLightPass.SetWVP(camera->GetProjection() * camera->GetView() * 
   //                    glm::translate(glm::mat4(1.0f), glm::vec3(-98.62, 71.01, 25.68)) * 
   //                    glm::scale(glm::mat4(1.0f), glm::vec3(BBoxScale, BBoxScale, BBoxScale)));
   
@@ -471,10 +539,13 @@ void Render()
   // only if the stencil passes.
   glEnable(GL_STENCIL_TEST);
 
-  for (unsigned int i = 0 ; i < 3; i++)
+  for (unsigned int i = 0 ; i < numPointLights; i++)
   {
-    DSStencilPass(i);
-    DSPointLightPass(i);
+    if(pointLight[i].on)
+    {
+      DSStencilPass(i);
+      DSPointLightPass(i);
+    }
   }
 
   // The directional light does not need a stencil test because its volume
@@ -483,30 +554,16 @@ void Render()
 
   DirectionalLightPass();
 
-  float dt = getdt();
-  terrain->Render(camera->GetView(), camera->GetProjection(), dt);
+  //triangle->Render(glm::vec3(0, 0, 0), camera->GetView(), camera->GetProjection());
+
+  skyBox->Render(camera->GetProjection(), camera->GetView(), 
+                 glm::translate(glm::mat4(1.0f), camera->getPos()));
 
 
-  // Render Stuff
-  GeomPass.Enable();
-  GeomPass.SetWVP( camera->GetProjection() * camera->GetView() * house->model);
-  GeomPass.SetWorldMatrix(camera->GetView());
-  house->Render(camera->GetView(), camera->GetProjection());
-
-  flag->Render(glm::vec3(-107.74, 86.13, -5.04), camera->GetView(), camera->GetProjection());
-  water->Render(glm::vec3(275.72, 35.04, 660.75), camera->GetView(), camera->GetProjection());
-  triangle->Render(glm::vec3(0, 0, 0), camera->GetView(), camera->GetProjection());
-
-  unsigned int DT = getDT();
   if(fireworks != NULL)
   {
     fireworks->Render(DT, camera->getPos() + camera->getFocus(), camera->GetProjection() * camera->GetView());    
   }
-  // grass->Render(DT, camera->getPos() + camera->getFocus(), camera->GetProjection() * camera->GetView(), camera->GetView());
-
-  skyBox->Render(camera->GetProjection(), camera->GetView(), 
-                    glm::translate(glm::mat4(1.0f), camera->getPos()));
-
 
   FinalPass();
 
@@ -515,7 +572,7 @@ void Render()
   if ( error != GL_NO_ERROR )
   {
     string val = ErrorString( error );
-    std::cout<< "Error initializing OpenGL! " << error << ", " << val << std::endl;
+    // std::cout<< "Error initializing OpenGL! " << error << ", " << val << std::endl;
   }
 
   // Swap to the Window
@@ -618,24 +675,24 @@ bool Keyboard(SDL_Event e, float dt)
     // Move left
     if (e.key.keysym.sym == SDLK_a)
     {
-      camera->strafe(0.1 * dt);
+      camera->strafe(speed * dt);
     }
     // move back
     if (e.key.keysym.sym == SDLK_s)
     {
-      camera->translate(-0.1 * dt);
+      camera->translate(-speed * dt);
     }
 
     // move right
     if (e.key.keysym.sym == SDLK_d)
     {
-      camera->strafe(-0.1 * dt);
+      camera->strafe(-speed * dt);
     }
 
     // move forward
     if (e.key.keysym.sym == SDLK_w)
     {
-      camera->translate(0.1 * dt);
+      camera->translate(speed * dt);
     }
 
     if (e.key.keysym.sym == SDLK_z)
@@ -675,7 +732,7 @@ bool Keyboard(SDL_Event e, float dt)
     {
       if(terrain->ToggleNight())
       {
-        DirLight.Color = COLOR_CYAN;
+        DirLight.Color = COLOR_NIGHT;
         DirLight.AmbientIntensity = 0.1f;
         DirLight.DiffuseIntensity = 0.9f;
 
@@ -690,12 +747,17 @@ bool Keyboard(SDL_Event e, float dt)
         }
 
         fireworks = new ParticleSystem(); 
-        if(!fireworks->InitParticleSystem(glm::vec3(38.22, 73.09, -25.20)))
+        if(!fireworks->InitParticleSystem(glm::vec3(-114.92, 132.96, 225.02)))
         {
           printf("Particle System Failed to init.\n");
           delete fireworks;
           fireworks = NULL;
           return false;
+        }
+
+        for (unsigned int i = 0 ; i < numPointLights; i++)
+        {
+          pointLight[i].on = true;
         }
       }
       else
@@ -714,6 +776,11 @@ bool Keyboard(SDL_Event e, float dt)
         {
           printf("Skybox Failed to init.\n");
           return false;
+        }
+
+        for (unsigned int i = 0 ; i < numPointLights; i++)
+        {
+          pointLight[i].on = false;
         }
       }
 
@@ -754,6 +821,17 @@ bool Keyboard(SDL_Event e, float dt)
       else
       {
         z += 0.1;
+      }
+    }
+    if (e.key.keysym.sym == SDLK_l)
+    {
+      if(speed == 0.1f)
+      {
+        speed = 0.01f;
+      }
+      else
+      {
+        speed = 0.1f;
       }
     }
   }
