@@ -323,8 +323,8 @@ void InitLights()
   pointLight[1].DiffuseIntensity = 100.6f;
   pointLight[1].Color = COLOR_WHITE;
   pointLight[1].Position = glm::vec3(-5.10, 59.73, -49.80);
-  pointLight[1].Attenuation.Constant = 1.8f;
-  pointLight[1].Attenuation.Linear = 0.8f;
+  pointLight[1].Attenuation.Constant = 1.0f;
+  pointLight[1].Attenuation.Linear = 1.8f;
   pointLight[1].Attenuation.Exp = 1.3f;
   pointLight[1].on = false;
 
