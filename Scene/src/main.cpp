@@ -89,11 +89,11 @@ unsigned int DT;
 int main(int argc, char **argv)
 {
   // Init the screen
-  if(argc < 2)
-  {
-    printf("Does not have the correct arguments. Need Heightmap\n");
-    return 1;
-  }
+  //if(argc < 2)
+  //{
+  //  printf("Does not have the correct arguments. Need Heightmap\n");
+  //  return 1;
+  //}
 
   if(!Initilize(argv[1]))
   {
