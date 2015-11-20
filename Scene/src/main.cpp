@@ -65,6 +65,7 @@ DSPointLightPassTech PointLightPass;
 NullTechnique NullTech;
 PointLight pointLight[numPointLights];
 Mesh sphere;
+Mesh cone;
 DirectionalLight DirLight;
 
 // Functions Related to DS
@@ -105,7 +106,6 @@ int main(int argc, char **argv)
   high_resolution_clock::time_point past = high_resolution_clock::now();
 
   SDL_Event e;
-  SDL_SetRelativeMouseMode(SDL_TRUE);
   bool run = true;
   // Startup
   while(run)
@@ -280,6 +280,12 @@ bool Initilize(char *filename)
   if(!sphere.LoadMesh("../content/sphere.obj"))
   {
     printf("Failed to load the sphere.\n");
+    return false;
+  }
+
+  if(!cone.LoadMesh("../content/cone.obj"))
+  {
+    printf("Failed to load the cone.\n");
     return false;
   }
 
@@ -560,7 +566,7 @@ void Render()
 
   DirectionalLightPass();
 
-  //triangle->Render(glm::vec3(0, 0, 0), camera->GetView(), camera->GetProjection());
+  triangle->Render(glm::vec3(0, 0, 0), camera->GetView(), camera->GetProjection());
 
   skyBox->Render(camera->GetProjection(), camera->GetView(), 
                  glm::translate(glm::mat4(1.0f), camera->getPos()));
@@ -655,6 +661,24 @@ bool Keyboard(SDL_Event e, float dt)
   if(e.type == SDL_QUIT)
   {
     return false;
+  }
+  else if(e.type == SDL_MOUSEBUTTONDOWN)
+  {
+    if(e.button.button == SDL_BUTTON_LEFT)
+    {
+      printf("Test\n");
+    }
+    if(e.button.button == SDL_BUTTON_MIDDLE)
+    {
+      window->ChangeMode();
+    }
+  }
+  else if(e.type == SDL_MOUSEBUTTONUP)
+  {
+    if(e.button.button == SDL_BUTTON_LEFT)
+    {
+      printf("Test\n");
+    }
   }
   else if (e.type == SDL_KEYDOWN)
   {
@@ -872,13 +896,11 @@ bool Keyboard(SDL_Event e, float dt)
   }
   if(e.type == SDL_MOUSEMOTION)
   {
-    camera->rotateX(-e.motion.xrel * 0.1f * dt);
-    camera->rotateY(-e.motion.yrel * 0.1f * dt);
-  }
-  else
-  {
-    // camera->resetHorizontalRotation();
-    // camera->resetVerticalRotation();
+    if(window->GetMode())
+    {
+      camera->rotateX(-e.motion.xrel * 0.1f * dt);
+      camera->rotateY(-e.motion.yrel * 0.1f * dt);    
+    }
   }
 
   // Return Success

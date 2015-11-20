@@ -93,5 +93,5 @@ void SkyBox::Render(glm::mat4 projection, glm::mat4 view, glm::mat4 camLoc)
   
   glCullFace(OldCullFaceMode);        
   glDepthFunc(OldDepthFuncMode);
-  glDepthMask(GL_FALSE);  
+  glDepthMask(GL_FALSE);
 }

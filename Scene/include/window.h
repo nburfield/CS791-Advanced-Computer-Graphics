@@ -10,9 +10,13 @@ class Window
     Window();
     ~Window();
     bool Initilize(string name, int* height, int* width);
+    SDL_Cursor *init_system_cursor();
     void Swap();
+    bool GetMode();
+    void ChangeMode();
 
   private:
     SDL_Window* gWindow;
     SDL_GLContext gContext;
+    bool mode;
 };

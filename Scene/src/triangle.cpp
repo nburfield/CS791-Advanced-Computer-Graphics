@@ -100,8 +100,10 @@ bool Triangle::Initilize()
 void Triangle::Render(glm::vec3 loc, glm::mat4 view, glm::mat4 proj)
 {
     Enable();
-    glm::mat4 mvp = proj * view * glm::translate(glm::mat4(1.0f), loc);
+    glm::mat4 mvp = proj * view ;//* glm::translate(glm::mat4(1.0f), loc);
 
+    glDepthMask(GL_TRUE);    
+    glEnable(GL_DEPTH_TEST);    
     glUniformMatrix4fv(m_WVPLocation, 1, GL_FALSE, glm::value_ptr(mvp));
 
     glEnableVertexAttribArray(0);
@@ -126,5 +128,6 @@ void Triangle::Render(glm::vec3 loc, glm::mat4 view, glm::mat4 proj)
     glDisableVertexAttribArray(2);
     glDisableVertexAttribArray(3);
 
+    glDepthMask(GL_FALSE);
 }
 
